@@ -1,29 +1,23 @@
+using dd_andromeda_poisson_disk_sampling.Propereties;
+using dd_andromeda_poisson_disk_sampling.Services;
 using dd_andromeda_poisson_disk_sampling.Worlds;
 using UnityEngine;
 
 namespace dd_andromeda_poisson_disk_sampling
 {
-    public class MultiRadWorldGrid : AbstractMultiRadGrid, IWorldGrid
+    public class MultiRadWorldGrid : AbstractWorldGrid
     {
-        public IWorld World { get; }
-        public Vector2Int ChunkPosition { get; }
+        public IFillPoints<IWorldGrid, PointWorld> PointFiller { get; set; }
 
-        public MultiRadWorldGrid(IWorld world, Vector2Int chunkPosition, float minRadius, float maxRadius)
-            : base(world.GridProperties, minRadius, maxRadius)
+        public MultiRadWorldGrid(IWorld world, Vector2Int chunkPosition, GridProperties gridProperties, 
+            ICandidateValidator<IWorldGrid, PointWorld> candidateValidator, IPointSettings pointSettings) : base(world, chunkPosition, gridProperties, candidateValidator, pointSettings)
         {
-            World = world;
-            ChunkPosition = chunkPosition;
         }
 
-        protected override bool IsCandidateValid(int searchSize, Vector3 candidateWorldPosition, float candidateRadius, Vector2Int candidateCell)
+        protected override void OnPointCreated(in PointWorld point)
         {
-            return CandidateValidator.IsCandidateValid(this, searchSize, 
-                candidateWorldPosition, candidateRadius, candidateCell, World, ChunkPosition);
-        }
-
-        protected override void OnPointCreated(ref Point point)
-        {
-            PointFiller.FillPoints(this, point, World, ChunkPosition);
+            base.OnPointCreated(point);
+            PointFiller?.FillPoints( this, point);
         }
     }
 }

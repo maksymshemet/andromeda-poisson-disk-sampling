@@ -43,8 +43,10 @@ namespace dd_andromeda_poisson_disk_sampling.Demo
 
             
             _points = new List<Point>();
-            if (_staticAbstractGrid.TrySpawnPointAt(
-                    new Vector3(_staticAbstractGrid.GridProperties.Size.x / 2, _staticAbstractGrid.GridProperties.Size.y / 2), out var point))
+            var point = _staticAbstractGrid.TrySpawnPointFrom(
+                new Vector3(_staticAbstractGrid.GridProperties.Size.x / 2,
+                    _staticAbstractGrid.GridProperties.Size.y / 2));
+            if (point != null)
             {
                 _points.Add(point);
                 var go = new GameObject("New Point");
@@ -62,7 +64,8 @@ namespace dd_andromeda_poisson_disk_sampling.Demo
 
         public void Spawn(Point p)
         {
-            if (_staticAbstractGrid.TrySpawnPointFrom(p, out var point))
+            var point = _staticAbstractGrid.TrySpawnPointFrom(p);
+            if (point != null)
             {
                 _points.Add(point);
                 var go = new GameObject("New Point");
@@ -79,7 +82,8 @@ namespace dd_andromeda_poisson_disk_sampling.Demo
         private IEnumerator CreateCoroutine()
         {
             var pos = new Vector3(_staticAbstractGrid.GridProperties.Size.x / 2, _staticAbstractGrid.GridProperties.Size.y / 2);
-            while (_staticAbstractGrid.TrySpawnPointAt(pos, out var point))
+            Point point = null;
+            while ((point = _staticAbstractGrid.TrySpawnPointFrom(pos)) != null)
             {
                 _points.Add(point);
                 pos = point.WorldPosition;

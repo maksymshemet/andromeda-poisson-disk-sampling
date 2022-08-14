@@ -11,6 +11,7 @@ namespace dd_andromeda_poisson_disk_sampling.Demo
 {
     public class DemoMultiRadWorld : MonoBehaviour
     {
+        public float PointMargin = 0;
         public float MinRadius = 1;
         public float MaxRadius = 2;
         public AnimationCurve RadiusCurve;
@@ -25,7 +26,7 @@ namespace dd_andromeda_poisson_disk_sampling.Demo
         
         [Header("Trigger")] public bool Trigger;
 
-        private List<Point> _points;
+        private List<PointWorld> _points;
         private IWorld _world;
 
         private static bool _cachedTrigger;
@@ -35,7 +36,7 @@ namespace dd_andromeda_poisson_disk_sampling.Demo
         {
             if (_cachedTrigger != Trigger)
             {
-                _world = Factory.CreateWorld(RegionSize, MinRadius, MaxRadius, Tries, RadiusCurve);
+                _world = Factory.CreateWorld(RegionSize, MinRadius, MaxRadius, Tries, PointMargin, RadiusCurve);
                 
                 // 595, 649, 376
                 var ts = DateTime.Now.Millisecond;
@@ -44,20 +45,20 @@ namespace dd_andromeda_poisson_disk_sampling.Demo
                 // 909
                 Random.InitState(ts);
                 // Random.InitState(201);
-                Random.InitState(500);
+                // Random.InitState(500);
                 
                 var sw = new Stopwatch();
                 sw.Start();
-                _points = _world.AddGrid(new Vector2Int(0, 0));
-                _points.AddRange(_world.AddGrid(new Vector2Int(-1, 0), fill: true));
-                _points.AddRange(_world.AddGrid(new Vector2Int(-1, 1), true));
-                _points.AddRange(_world.AddGrid(new Vector2Int(-1, -1), true));
-                _points.AddRange(_world.AddGrid(new Vector2Int(0, -1), true));
+                _points = _world.CreateGrid(new Vector2Int(0, 0));
+                _points.AddRange(_world.CreateGrid(new Vector2Int(-1, 0), fill: true));
+                _points.AddRange(_world.CreateGrid(new Vector2Int(-1, 1), true));
+                _points.AddRange(_world.CreateGrid(new Vector2Int(-1, -1), true));
+                _points.AddRange(_world.CreateGrid(new Vector2Int(0, -1), true));
                 // _world.AddGrid(new Vector2Int(0, -1));
-                _points.AddRange(_world.AddGrid(new Vector2Int(0, 1)));
-                _points.AddRange(_world.AddGrid(new Vector2Int(1, -1)));
-                _points.AddRange(_world.AddGrid(new Vector2Int(1, 0), true));
-                _points.AddRange(_world.AddGrid(new Vector2Int(1, 1), fill:true));
+                _points.AddRange(_world.CreateGrid(new Vector2Int(0, 1)));
+                _points.AddRange(_world.CreateGrid(new Vector2Int(1, -1)));
+                _points.AddRange(_world.CreateGrid(new Vector2Int(1, 0), true));
+                _points.AddRange(_world.CreateGrid(new Vector2Int(1, 1), fill:true));
 
                 _points = _points.Distinct().ToList();
                 
@@ -94,7 +95,20 @@ namespace dd_andromeda_poisson_disk_sampling.Demo
             
             foreach (var point in _points)
             {
-                Gizmos.color = PointColor;
+                if (point.ChunkPosition.x < 0)
+                {
+                    Gizmos.color = Color.blue;
+                }
+                else if (point.ChunkPosition.y < 0)
+                {
+                    Gizmos.color = Color.red;
+
+                }
+                else
+                {
+                    Gizmos.color = PointColor;
+                }
+               
                 Gizmos.DrawSphere(point.WorldPosition, point.Radius);
                 Gizmos.color = Color.red;
                 Gizmos.DrawSphere(point.WorldPosition, 0.03f);

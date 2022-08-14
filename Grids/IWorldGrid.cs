@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace dd_andromeda_poisson_disk_sampling
 {
-    public interface IWorldGrid : IGrid
+    public interface IWorldGrid : IGridAbstract<PointWorld>
     {
         public IWorld World { get; }
         

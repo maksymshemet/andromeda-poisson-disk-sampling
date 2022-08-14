@@ -37,12 +37,14 @@ namespace dd_andromeda_poisson_disk_sampling
                 CellWidth = cellWidth,
                 Tries = tries
             };
-            
-            return new MultiRadGrid(gridProperties, minRadius, maxRadius)
+            var ps = new PointMultiRadSettings(minRadius, maxRadius)
             {
-                RadiusChangePercents = radiusChangePercents,
+                RadiusChangePercents = radiusChangePercents
+            };
+            
+            return new MultiRadGrid(gridProperties, new CandidateValidatorGrid(), ps)
+            {
                 PointFiller = new FillGridPoints(),
-                CandidateValidator = new CandidateValidatorGrid()
             };
         }
         
@@ -63,9 +65,10 @@ namespace dd_andromeda_poisson_disk_sampling
                 Tries = tries
             };
 
-            return new StaticGrid(gridProperties, radius)
+            var ps = new PointConstSettings(radius);
+            
+            return new StaticGrid(gridProperties, new CandidateValidatorGrid(), ps)
             {
-                CandidateValidator = new CandidateValidatorGrid()
             };
         }
 
@@ -73,9 +76,10 @@ namespace dd_andromeda_poisson_disk_sampling
             float minRadius,
             float maxRadius,
             int tries = 20,
+            float pointMargin = 0,
             AnimationCurve radiusChangeCurve = null)
         {
-            var cellSize = minRadius / Sqrt2;
+            var cellSize = (minRadius + pointMargin) / Sqrt2;
             var cellWidth =  Mathf.CeilToInt(size.x / cellSize);
             var cellHeight = Mathf.CeilToInt(size.y / cellSize);
             
@@ -99,9 +103,15 @@ namespace dd_andromeda_poisson_disk_sampling
                 Tries = tries,
             };
 
-            return new World(gridProperties, minRadius, maxRadius)
+            var ps = new PointMultiRadSettings(minRadius, maxRadius)
             {
+                Margin = pointMargin,
                 RadiusChangePercents = radiusChangePercents
+            };
+            
+            return new World(gridProperties)
+            {
+                PointSettings = ps
             };
         }
         
@@ -110,12 +120,11 @@ namespace dd_andromeda_poisson_disk_sampling
             float cx = chunkPosition.x * world.ChunkSize.x;
             float cy = chunkPosition.y * world.ChunkSize.y;
             
-            return new MultiRadWorldGrid(world: world, chunkPosition: chunkPosition, world.MinRadius, world.MaxRadius)
+            return new MultiRadWorldGrid(world: world, chunkPosition: chunkPosition, gridProperties: 
+                world.GridProperties, candidateValidator: new CandidateValidatorGridWorld(), pointSettings: world.PointSettings)
             {
                 WorldPositionOffset = new Vector3(cx, cy),
-                RadiusChangePercents = world.RadiusChangePercents,
                 PointFiller = new FillWorldGridPoints(),
-                CandidateValidator = new CandidateValidatorGridWorld()
             };
         }
     }

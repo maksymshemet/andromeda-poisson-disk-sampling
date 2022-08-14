@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using dd_andromeda_poisson_disk_sampling.Propereties;
+using dd_andromeda_poisson_disk_sampling.Services;
 using UnityEngine;
 
 namespace dd_andromeda_poisson_disk_sampling.Worlds
@@ -9,13 +10,13 @@ namespace dd_andromeda_poisson_disk_sampling.Worlds
         public GridProperties GridProperties { get; }
         public Vector2 ChunkSize { get; }
         public IEnumerable<IWorldGrid> Grids { get; }
-        
-        List<Point> AddGrid(Vector2Int chunkPosition, bool fill = true);
+        IPointSettings PointSettings { get; set; }
+        PointWorld TrySpawnPointFrom(PointWorld spawnPoint);
+        List<PointWorld> CreateGrid(Vector2Int chunkPosition, bool fill = true);
         IWorldGrid GetGrid(Vector2Int vector2Int);
-        Point GetPoint(int chunkX, int chunkY, int cellX, int cellY);
-        Point GetPoint(Vector2Int chunkCoord, int cellX, int cellY);
-        void SetCellValue(WorldCoordinate coordinate, int value);
-        int AddPoint(WorldCoordinate coordinate, Point point);
+        PointWorld GetPoint(int chunkX, int chunkY, int cellX, int cellY);
+        PointWorld GetPoint(Vector2Int chunkCoord, int cellX, int cellY);
+        int AddPoint(WorldCoordinate coordinate, PointWorld point);
         WorldCoordinate GetRealWorldCoordinate(int chunkX, int chunkY, int cellX, int cellY);
         WorldCoordinate GetRealWorldCoordinate(Vector2Int chunkPosition, int cellX, int cellY);
     }
