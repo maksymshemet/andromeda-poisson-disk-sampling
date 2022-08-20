@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using dd_andromeda_poisson_disk_sampling.Propereties;
 using dd_andromeda_poisson_disk_sampling.Services;
@@ -7,10 +8,16 @@ namespace dd_andromeda_poisson_disk_sampling.Worlds
 {
     public interface IWorld
     {
-        public GridProperties GridProperties { get; }
-        public Vector2 ChunkSize { get; }
-        public IEnumerable<IWorldGrid> Grids { get; }
+        event Action<PointWorld> OnPointCreated;
+        
+        GridProperties GridProperties { get; }
+        Vector2 ChunkSize { get; }
+        IEnumerable<IWorldGrid> Grids { get; }
         IPointSettings PointSettings { get; set; }
+        
+        Vector3 WorldPositionOffset { get; set; }
+        bool AutoCreateGrid { get; set; }
+        
         PointWorld TrySpawnPointFrom(PointWorld spawnPoint);
         List<PointWorld> CreateGrid(Vector2Int chunkPosition, bool fill = true);
         IWorldGrid GetGrid(Vector2Int vector2Int);

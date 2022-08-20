@@ -1,0 +1,16 @@
+{
+  "name": "com.darkdynamics.andromeda.pds",
+  "displayName": "Andromeda PDS",
+  "version": "0.0.1",
+  "unity": "2020.3",
+  "description": "Poisson Disk Sampling",
+  "keywords": ["Dark Dynamics", "Andromeda", "Poisson Disk Sampling", "PDS"],
+  "category": "",
+  "dependencies": {
+ 
+  },
+  "author": {
+    "name": "Maksym Shemet",
+    "email": "shemet.max92@gmail.com"
+  }
+}

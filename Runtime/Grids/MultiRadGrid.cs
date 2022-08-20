@@ -11,9 +11,9 @@ namespace dd_andromeda_poisson_disk_sampling
         {
         }
 
-        protected override void OnPointCreated(in Point point)
+        protected override void PostPointCreated(in Point point)
         {
-            base.OnPointCreated(point);
+            base.PostPointCreated(point);
             
             PointFiller?.FillPoints( this, point);
         }

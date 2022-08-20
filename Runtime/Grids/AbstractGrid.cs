@@ -20,7 +20,7 @@ namespace dd_andromeda_poisson_disk_sampling
         public IPointSettings PointSettings { get; }
         public IReadOnlyList<P> Points => _points;
 
-        private readonly int[] _cells;
+        protected readonly int[] _cells;
         protected readonly List<P> _points;
 
         protected AbstractGrid(GridProperties gridProperties, ICandidateValidator<T, P> candidateValidator, IPointSettings pointSettings)
@@ -142,9 +142,10 @@ namespace dd_andromeda_poisson_disk_sampling
                             Radius = candidateRadius - PointSettings.Margin,
                             Cell = candidateCell
                         };
+                        PrePointCreated(point);
                         _points.Add(point);
                         _cells[FlatCoordinates(point.Cell)] = _points.Count;
-                        OnPointCreated(point);
+                        PostPointCreated(point);
                         return _points.Count - 1;
                     }
                 }
@@ -156,7 +157,11 @@ namespace dd_andromeda_poisson_disk_sampling
         protected abstract bool IsCandidateValid(int searchSize, Vector3 candidateWorldPosition, float candidateRadius,
             Vector2Int candidateCell);
         
-        protected virtual void OnPointCreated(in P point)
+        protected virtual void PrePointCreated(in P point)
+        {
+        }
+        
+        protected virtual void PostPointCreated(in P point)
         {
         }
         

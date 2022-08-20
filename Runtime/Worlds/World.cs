@@ -4,13 +4,18 @@ using dd_andromeda_poisson_disk_sampling.Propereties;
 using dd_andromeda_poisson_disk_sampling.Services;
 using dd_andromeda_poisson_disk_sampling.Worlds;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace dd_andromeda_poisson_disk_sampling
 {
     public class World : IWorld
     {
+        public event Action<PointWorld> OnPointCreated;
+
         public GridProperties GridProperties { get; }
         public IPointSettings PointSettings { get; set; }
+        public Vector3 WorldPositionOffset { get; set; }
+        public bool AutoCreateGrid { get; set; }
         public Vector2 ChunkSize { get; }
         public IEnumerable<IWorldGrid> Grids => _chunks.Values;
         
@@ -58,6 +63,9 @@ namespace dd_andromeda_poisson_disk_sampling
                 }
                 _pointsPerChunk.Remove(chunkPosition);
             }
+
+            grid.OnPointCreated += OnPointCreatedFunc;
+            
             if (!fill)
                 return new List<PointWorld>();
             return grid.Fill();
@@ -74,6 +82,7 @@ namespace dd_andromeda_poisson_disk_sampling
         public PointWorld GetPoint(int chunkX, int chunkY, int cellX, int cellY)
         {
             var worldCoord = GetRealWorldCoordinate(chunkX, chunkY, cellX, cellY);
+
             return _chunks.TryGetValue(worldCoord.ChunkPosition, out var chunk) 
                 ? chunk.GetPoint(worldCoord.CellX, worldCoord.CellY) : default;
         }
@@ -123,14 +132,58 @@ namespace dd_andromeda_poisson_disk_sampling
 
         public PointWorld TrySpawnPointFrom(PointWorld spawnPoint)
         {
-            if (_chunks.TryGetValue(spawnPoint.ChunkPosition, out var chunk))
+            if(spawnPoint == null) return null;
+            
+            for (var i = 0; i < GridProperties.Tries; i++)
             {
-                return chunk.TrySpawnPointFrom(spawnPoint);
+                var candidateRadius = PointSettings.GetPointRadius(i);
+                
+                if (candidateRadius <= 0) continue;
+                
+                var candidateWorldPosition = GetRandomCandidateWorldPosition(
+                    spawnPoint.WorldPosition, 
+                    spawnPoint.Radius, 
+                    candidateRadius);
+
+                var chunkPos = new Vector2Int(Mathf.FloorToInt((candidateWorldPosition.x - WorldPositionOffset.x) / ChunkSize.x),
+                    Mathf.FloorToInt((candidateWorldPosition.y - WorldPositionOffset.y) / ChunkSize.y));
+
+                if (_chunks.TryGetValue(chunkPos, out var chunk))
+                {
+                    var res = chunk.TrySpawnPoint(candidateWorldPosition, candidateRadius);
+                    if (res != -1)
+                    {
+                        return chunk.GetPoint(res);
+                    }
+                }
+                else if (AutoCreateGrid)
+                {
+                     CreateGrid(chunkPos, false);
+                     var res = _chunks[chunkPos]
+                         .TrySpawnPoint(candidateWorldPosition, candidateRadius);
+                     if (res != -1)
+                     {
+                         return _chunks[chunkPos].GetPoint(res);
+                     }
+                }
             }
 
-            return null;
+            return default;
         }
 
+        private const float DoublePI = 6.28318548f;
+        protected Vector3 GetRandomCandidateWorldPosition(Vector3 spawnPointWorldPosition, 
+            float spawnerRadius, float candidateRadius)
+        {
+            var angel = Random.value * DoublePI;
+            var direction = new Vector3(Mathf.Sin(angel), Mathf.Cos(angel));
+            return spawnPointWorldPosition + direction * Random.Range(2 * spawnerRadius, candidateRadius * 3f);
+        }
+        private void OnPointCreatedFunc(PointWorld point)
+        {
+            OnPointCreated?.Invoke(point);
+        }
+        
         private void GetChunkCoordinate(int rawCoord, int gridLenght, int chunkPosition, out int chunkCoord, out int cellCoord)
         {
             if (rawCoord >= 0 && rawCoord <= gridLenght)

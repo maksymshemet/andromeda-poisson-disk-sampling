@@ -117,8 +117,8 @@ namespace dd_andromeda_poisson_disk_sampling
         
         internal static MultiRadWorldGrid CreateWorldGrid(World world, Vector2Int chunkPosition)
         {
-            float cx = chunkPosition.x * world.ChunkSize.x;
-            float cy = chunkPosition.y * world.ChunkSize.y;
+            float cx = (chunkPosition.x * world.ChunkSize.x) + world.WorldPositionOffset.x;
+            float cy = (chunkPosition.y * world.ChunkSize.y) + world.WorldPositionOffset.y;
             
             return new MultiRadWorldGrid(world: world, chunkPosition: chunkPosition, gridProperties: 
                 world.GridProperties, candidateValidator: new CandidateValidatorGridWorld(), pointSettings: world.PointSettings)

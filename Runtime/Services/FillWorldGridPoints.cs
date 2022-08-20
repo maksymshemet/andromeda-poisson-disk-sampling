@@ -43,6 +43,7 @@ namespace dd_andromeda_poisson_disk_sampling.Services
                     {
                         var dstToCenter = PowLengthBetweenCellPoints(x1, point.Cell.x, grid.GridProperties.CellSize) + powYY;
                         var delta = dstToCenter - sqrtRad;
+                        
                         if (delta < grid.GridProperties.CellSize)
                         {
                             var worldCoord = grid.World.GetRealWorldCoordinate(grid.ChunkPosition, x1, y1);
