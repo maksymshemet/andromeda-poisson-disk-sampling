@@ -5,7 +5,7 @@ namespace dd_andromeda_poisson_disk_sampling.Services
 {
     public class FillWorldGridPoints : IFillPoints<IWorldGrid, PointWorld>
     {
-        public void FillPoints(in IWorldGrid grid, PointWorld point)
+        public Dictionary<Vector2Int, int> FillPoints(in IWorldGrid grid, PointWorld point)
         {
             var x = Mathf.FloorToInt((point.WorldPosition.x - grid.WorldPositionOffset.x) / grid.GridProperties.CellSize);
             var y = Mathf.FloorToInt((point.WorldPosition.y - grid.WorldPositionOffset.y) / grid.GridProperties.CellSize);
@@ -62,6 +62,8 @@ namespace dd_andromeda_poisson_disk_sampling.Services
                     }
                 }
             }
+
+            return cachedIndexes;
         }
         
         private float PowLengthBetweenCellPoints(int a, int b, float cellSize)

@@ -1,10 +1,11 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace dd_andromeda_poisson_disk_sampling.Services
 {
     public class FillGridPoints : IFillPoints<IGrid, Point>
     {
-        public void FillPoints(in IGrid grid, Point point)
+        public Dictionary<Vector2Int, int> FillPoints(in IGrid grid, Point point)
         {
             var x = Mathf.FloorToInt((point.WorldPosition.x - grid.WorldPositionOffset.x) / grid.GridProperties.CellSize);
             var y = Mathf.FloorToInt((point.WorldPosition.y - grid.WorldPositionOffset.y) / grid.GridProperties.CellSize);
@@ -42,6 +43,8 @@ namespace dd_andromeda_poisson_disk_sampling.Services
                     }
                 }
             }
+
+            return null;
         }
         
         private float PowLengthBetweenCellPoints(int a, int b, float cellSize)

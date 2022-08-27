@@ -142,10 +142,11 @@ namespace dd_andromeda_poisson_disk_sampling
                             Radius = candidateRadius - PointSettings.Margin,
                             Cell = candidateCell
                         };
-                        PrePointCreated(point);
+                        
+                        PrePointCreated(point, _points.Count);
                         _points.Add(point);
                         _cells[FlatCoordinates(point.Cell)] = _points.Count;
-                        PostPointCreated(point);
+                        PostPointCreated(point, _points.Count);
                         return _points.Count - 1;
                     }
                 }
@@ -157,11 +158,11 @@ namespace dd_andromeda_poisson_disk_sampling
         protected abstract bool IsCandidateValid(int searchSize, Vector3 candidateWorldPosition, float candidateRadius,
             Vector2Int candidateCell);
         
-        protected virtual void PrePointCreated(in P point)
+        protected virtual void PrePointCreated(in P point, int pointIndex)
         {
         }
         
-        protected virtual void PostPointCreated(in P point)
+        protected virtual void PostPointCreated(in P point, int pointIndex)
         {
         }
         
