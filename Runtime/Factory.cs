@@ -175,7 +175,7 @@ namespace dd_andromeda_poisson_disk_sampling
             };
         }
 
-        internal static GridWorld CreateWorldGrid(WorldMultiRad world, Vector2Int chunkPosition, GridProperties properties)
+        internal static GridWorld CreateWorldGrid(WorldMultiRad world, Vector2Int chunkPosition)
         {
             var chunkSize = new Vector2(
                 x:world.GridProperties.CellSize * world.GridProperties.CellWidth,
@@ -184,7 +184,7 @@ namespace dd_andromeda_poisson_disk_sampling
             float cx = (chunkPosition.x * chunkSize.x) + world.WorldPositionOffset.x;
             float cy = (chunkPosition.y * chunkSize.y) + world.WorldPositionOffset.y;
 
-            var core = new GridCore(properties)
+            var core = new GridCore(world.GridProperties)
             {
                 WorldPositionOffset = new Vector3(cx, cy)
             };

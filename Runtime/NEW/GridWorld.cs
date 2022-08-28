@@ -20,6 +20,8 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
         private readonly List<PointWorld> _points;
         private Stack<int> _emptyPointIndices;
         
+        private Dictionary<Vector2Int, PointWorld> _linkedPoints; 
+
         protected GridWorld(GridCore gridCore,WorldMultiRad world, Vector2Int chunkPosition, IRadius radius)
         {
             radiusProvider = radius;
@@ -32,7 +34,35 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
 
         public List<PointWorld> Fill()
         {
-           return Fill(new Vector3(GridCore.Size.x / 2, GridCore.Size.y / 2) + GridCore.WorldPositionOffset);
+           return Fill(new Vector3(GridCore.Properties.Size.x / 2, GridCore.Properties.Size.y / 2) + GridCore.WorldPositionOffset);
+        }
+
+        public void LinkPoint(int x, int y, in PointWorld point)
+        {
+            if (_linkedPoints == null)
+                _linkedPoints = new Dictionary<Vector2Int, PointWorld>();
+            
+            var key = new Vector2Int(x, y);
+            // if (_linkedPoints.ContainsKey(key))
+            // {
+            //     throw new Exception($"Couldn't link the point, cell[{x},{y}] already has linked point");
+            // }
+            
+            _linkedPoints[key] = point;
+        }
+
+        public void RemoveLink(int x, int y, in PointWorld point)
+        {
+            if(_linkedPoints == null) return;
+        
+            var key = new Vector2Int(x, y);
+            if (_linkedPoints.TryGetValue(key, out var linkedPoint))
+            {
+                if (linkedPoint == point)
+                {
+                    _linkedPoints.Remove(key);
+                }
+            }
         }
         
         public List<PointWorld> Fill(Vector3 spawnPosition)
@@ -77,10 +107,18 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
             return _points;
         }
         
-        public PointWorld GetPoint(int x, int y)
+        public PointWorld GetPoint(int x, int y, bool excludeLinked = false)
         {
-            if(GridCore.IsCellEmpty(x, y))
+            if (GridCore.IsCellEmpty(x, y))
+            {
+                if (_linkedPoints != null)
+                {
+                    if (_linkedPoints.TryGetValue(new Vector2Int(x, y), out var lp))
+                        return lp;
+                }
                 return null;
+            }
+                
             
             var pointIndex = GridCore.GetCellValue(x, y) - 1;
             return _points[pointIndex];
@@ -91,7 +129,7 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
             return TrySpawnPoint(spawnerPosition, radiusProvider.GetRadius(0, Tries), out point);
         }
         
-        public bool TrySpawnPoint(Vector3 spawnerPosition, float spawnerRadius, out PointWorld point)
+        public virtual bool TrySpawnPoint(Vector3 spawnerPosition, float spawnerRadius, out PointWorld point)
         {
             for (var i = 0; i < Tries; i++)
             {
@@ -100,7 +138,6 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
                     if (IsCandidateValid(candidate))
                     {
                         TryAddPoint(candidate.WorldPosition, candidate.Radius, candidate.Cell.x, candidate.Cell.y, out point, true);
-                        PostPointCreated(point, GridCore.GetCellValue(candidate.Cell.x, candidate.Cell.y) - 1);
                         return true;
                     }
                 }
@@ -140,63 +177,33 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
             return false;
         }
 
-        public bool RemovePoint(PointWorld point)
+        public virtual bool RemovePoint(PointWorld point)
         {
-            if (point.ChunkPosition != ChunkPosition)
+            if (point.ChunkPosition != ChunkPosition && GridCore.IsCellEmpty(point.Cell.x, point.Cell.y))
             {
                 return false;
             }
 
-            var cellValue = GridCore.GetCellValue(point.Cell.x, point.Cell.y);
-            
-            if(ClearCell(point.Cell.x, point.Cell.y, true))
+            var pointIndex = GridCore.GetCellValue(point.Cell.x, point.Cell.y) - 1;
+            if (_points[pointIndex] != null)
             {
-                OnPointRemoved(point, cellValue - 1, cellValue);
-                return true;
-            }
-
-            return false;
-        }
-
-        public bool ClearCell(int cellX, int cellY, bool removePoint = true)
-        {
-            if (GridCore.IsCellEmpty(cellX, cellY))
-            {
-                return false;
-            }
-            
-            if (removePoint)
-            {
-                var pointIndex = GridCore.GetCellValue(cellX, cellY) - 1;
-                if (_points[pointIndex] != null)
-                {
-                    if (_emptyPointIndices == null)
-                        _emptyPointIndices = new Stack<int>();
+                if (_emptyPointIndices == null)
+                    _emptyPointIndices = new Stack<int>();
                     
-                    _emptyPointIndices.Push(pointIndex);
-                }
-                
-                _points[pointIndex] = null;
+                _emptyPointIndices.Push(pointIndex);
             }
-            
-            GridCore.CleatCell(cellX, cellY);
+                
+            _points[pointIndex] = null;
+
+            GridCore.ClearCell(point.Cell.x, point.Cell.y);
             
             return true;
         }
-        
-        protected virtual void OnPointRemoved(PointWorld point, int pointIndex,  int cellValue)
-        {
 
-        }
-        
         protected abstract bool TryCreateCandidate(Vector3 spawnerPosition, float spawnerRadius, int currentTry, int maxTries, out Candidate candidate);
 
         protected abstract int GetSearchRange(float pointRadius);
         
-        protected virtual void PostPointCreated(in PointWorld point, int pointIndex)
-        {
-        }
-
         private bool IsCandidateValid(Candidate candidate)
         {
             var searchRange = GetSearchRange(candidate.Radius);
@@ -219,7 +226,19 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
 
         private bool IsCandidateValidInGrid(int x, int y, Candidate candidate)
         {
-            if (GridCore.IsCellEmpty(x, y)) return true;
+            if (GridCore.IsCellEmpty(x, y))
+            {
+                if(_linkedPoints == null)
+                    return true;
+
+                var key = new Vector2Int(x, y);
+                if (_linkedPoints.TryGetValue(key, out var linkedPoint))
+                {
+                    return !IsCandidateIntersectWithPoint(candidate, linkedPoint);
+                }
+                
+                return true;
+            }
             
             var pointIndex = GridCore.GetCellValue(x, y);
             var point = _points[pointIndex - 1]; 
@@ -248,7 +267,7 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
 #if UNITY_EDITOR
         private bool EditorCheckForEndlessSpawn(ICollection spawnPoints)
         {
-            if (GridCore.CellWidth * GridCore.CellHeight >= _points.Count) return false;
+            if (GridCore.Properties.CellWidth * GridCore.Properties.CellHeight >= _points.Count) return false;
             
             Debug.LogError($"Endless spawn points: {spawnPoints.Count}");
             return true;

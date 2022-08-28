@@ -172,7 +172,7 @@ namespace dd_andromeda_poisson_disk_sampling.Demo
                     new Vector3(_world.ChunkSize.x, _world.ChunkSize.y));
                 
                 Gizmos.color = GridColor;
-                for (int x = 0; x < grid.GridCore.CellWidth; x++)
+                for (int x = 0; x < grid.GridCore.Properties.CellWidth; x++)
                 {
                     var from = new Vector2(worldOffsetX + offsetX * x,worldOffsetY);
                     var to = new Vector2(worldOffsetX + offsetX * x, worldOffsetY + RegionSize.y);
@@ -180,7 +180,7 @@ namespace dd_andromeda_poisson_disk_sampling.Demo
                         
                 }
                 
-                for (int y = 0; y < grid.GridCore.CellHeight; y++)
+                for (int y = 0; y < grid.GridCore.Properties.CellHeight; y++)
                 {
                     var from = new Vector2(worldOffsetX, worldOffsetY + offsetY * y);
                     var to = new Vector2(worldOffsetX + RegionSize.x, worldOffsetY + offsetY * y);
