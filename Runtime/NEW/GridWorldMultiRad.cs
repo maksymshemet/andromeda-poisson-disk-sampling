@@ -10,7 +10,7 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
         {
         }
 
-        protected override bool TryCreateCandidate(Vector3 spawnerPosition, float spawnerRadius, int currentTry, int maxTries,
+        public override bool TryCreateCandidate(Vector3 spawnerPosition, float spawnerRadius, int currentTry, int maxTries,
             out Candidate candidate)
         {
             var radius = World.Radius.GetRadius(currentTry, maxTries);
@@ -48,7 +48,7 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
             return Mathf.Max(3, Mathf.CeilToInt(pointRadius / GridCore.Properties.CellSize));
         }
 
-        public override bool TryAddPoint(Vector3 worldPosition, float radius, int x, int y, out PointWorld point, bool force = false)
+        protected override bool TryAddPoint(Vector3 worldPosition, float radius, int x, int y, out PointWorld point, bool force = false)
         {
             if (!base.TryAddPoint(worldPosition, radius, x, y, out point, force)) return false;
             

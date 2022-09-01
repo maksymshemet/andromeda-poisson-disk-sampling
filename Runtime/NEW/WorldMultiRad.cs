@@ -5,11 +5,6 @@ using UnityEngine;
 
 namespace dd_andromeda_poisson_disk_sampling.Propereties
 {
-    public enum PointWorldStatus
-    {
-        Cached, Added, Declined
-    }
-    
     public class WorldMultiRad
     {
         public IRadius Radius { get; }
@@ -41,35 +36,27 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
 
             if (_cachedPoints.TryGetValue(position, out var pointWorlds))
             {
-                var cellValues = new Dictionary<PointWorld, int>();
                 foreach (var pair in pointWorlds)
                 {
                     var cellCoord = pair.Key;
                     var point = pair.Value;
-                   
                     grid.LinkPoint(cellCoord.x, cellCoord.y, point);
-                    
-                    // if (cellValues.TryGetValue(point, out var cellValue))
-                    // {
-                    //     grid.GridCore.SetCellValue(cellCoord.x, cellCoord.y, cellValue);
-                    // }
-                    // else
-                    // {
-                    //     if (grid.TryAddPoint(point.WorldPosition, point.Radius, cellCoord.x, cellCoord.y, out var pw, force: true))
-                    //     {
-                    //         cellValues[point] = grid.GridCore.GetCellValue(pw.Cell.x, pw.Cell.y);
-                    //     }
-                    // }
                 }
             }
 
             return grid;
         }
 
+        public GridWorld GetGrid(Vector2Int chunk)
+        {
+            return _grids.TryGetValue(chunk, out var grid) ? grid : null;
+        }
+
         public PointWorld GetPoint(WorldCoordinate worldCoordinate, bool excludeCached = false, bool excludeLinked = false)
         {
             return GetPoint(worldCoordinate.ChunkPosition, worldCoordinate.CellX, worldCoordinate.CellY, excludeCached, excludeLinked);
         }
+
         public PointWorld GetPoint(Vector2Int chunk, int x, int y, bool excludeCached = false, bool excludeLinked = false)
         {
             if (_grids.TryGetValue(chunk, out var grid))
@@ -87,12 +74,12 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
             
             return null;
         }
-        
+
         public WorldCoordinate GetRealWorldCoordinate(Vector2Int grid, int x, int y)
         {
             return GetRealWorldCoordinate(grid.x, grid.y, x, y);
         }
-        
+
         public WorldCoordinate GetRealWorldCoordinate(int gridX, int gridY, int cellX, int cellY)
         {
             GetGridCoordinate(cellX, GridProperties.CellWidth - 1, gridX, 
@@ -102,56 +89,7 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
             
             return new WorldCoordinate(new Vector2Int(targetGridX, targetGridY), targetCellX, targetCellY);
         }
-        
-        public GridWorld GetGrid(Vector2Int chunk)
-        {
-            return _grids.TryGetValue(chunk, out var grid) ? grid : null;
-        }
 
-        public PointWorldStatus TryAddPoint(WorldCoordinate coordinate, PointWorld point, bool cache = false)
-        {
-            if (_grids.TryGetValue(coordinate.ChunkPosition, out var grid))
-            {
-                return grid.TryAddPoint(point.WorldPosition, point.Radius, coordinate.CellX, coordinate.CellY, out var pointIndex) 
-                    ? PointWorldStatus.Added 
-                    : PointWorldStatus.Declined;
-            }
-
-            if (!cache) return PointWorldStatus.Declined;
-            if (_cachedPoints.TryGetValue(coordinate.ChunkPosition, out var gridPoints))
-            {
-                gridPoints[new Vector2Int(coordinate.CellX, coordinate.CellY)] = point;
-            }
-            else
-            {
-                _cachedPoints[coordinate.ChunkPosition] = new Dictionary<Vector2Int, PointWorld>
-                {
-                    [new Vector2Int(coordinate.CellX, coordinate.CellY)] = point
-                };
-            }
-            // if (_cachedPoints.TryGetValue(coordinate.ChunkPosition, out var gridPoints))
-            // {
-            //     if (gridPoints.TryGetValue(point, out var cells))
-            //     {
-            //         cells.Add(new Vector2Int(coordinate.CellX, coordinate.CellY));
-            //     }
-            //     else
-            //     {
-            //         gridPoints[point] = new HashSet<Vector2Int> { new Vector2Int(coordinate.CellX, coordinate.CellY) };
-            //     }
-            // }
-            // else
-            // {
-            //     gridPoints = new Dictionary<PointWorld, HashSet<Vector2Int>>
-            //     {
-            //         [point] = new HashSet<Vector2Int> { new Vector2Int(coordinate.CellX, coordinate.CellY) }
-            //     };
-            //     _cachedPoints[coordinate.ChunkPosition] = gridPoints;
-            // }
-
-            return PointWorldStatus.Cached;
-        }
-        
         public bool TrySpawnPointFrom(PointWorld spawnPoint, out PointWorld result)
         {
             for (var i = 0; i < Tries; i++)
@@ -159,123 +97,17 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
                 var radius = Radius.GetRadius(i, Tries);
                 if (radius == 0) continue;
 
-                var grid = TryCreateCandidate(spawnPoint.WorldPosition, spawnPoint.Radius, radius, out var candidate);
-                if(grid.TrySpawnPoint(candidate, out result))
+                var grid = TryCreateCandidate(spawnPoint.WorldPosition, 
+                    spawnPoint.Radius, radius, out var candidate);
+                if(grid.TrySpawnPointNear(candidate, out result))
                 {
                     return true;
                 }
-                
-                // var position = Helper
-                //     .GetCandidateRandomWorldPosition(
-                //         spawnWorldPosition: spawnPoint.WorldPosition,
-                //         spawnerRadius: spawnPoint.Radius,
-                //         candidateRadius: radius);
-                //
-                // var gridPosition = WorldPositionToGridPosition(position);
-                //
-                //
-                // if (_grids.TryGetValue(gridPosition, out var g))
-                // {
-                //     var candidate = new Candidate
-                //     {
-                //         Radius = radius,
-                //         WorldPosition = position,
-                //         Cell = g.GridCore.PositionToCellClamped(position)
-                //     };
-                //
-                //     if (g.TrySpawnPoint(candidate, out result))
-                //     {
-                //         return true;
-                //     }
-                //     
-                //     // if (g.TrySpawnPoint(position, radius, out result))
-                //     // {
-                //     //     return true;
-                //     // }
-                // }
-                //
-                // else if (true)
-                // {
-                //     var grid = CreateGrid(gridPosition);
-                //     var candidate = new Candidate
-                //     {
-                //         Radius = radius,
-                //         WorldPosition = position,
-                //         Cell = g.GridCore.PositionToCellClamped(position)
-                //     };
-                //
-                //     if (grid.TrySpawnPoint(candidate, out result))
-                //     {
-                //         return true;
-                //     }
-                //     //
-                //     // if (grid.TrySpawnPoint(position, radius, out result))
-                //     // {
-                //     //     return true;
-                //     // }
-                // }
             }
 
             result = default;
             return false;
         }
-
-        private GridWorld TryCreateCandidate(Vector3 spawnerPosition, float spawnerRadius, float radius,
-            out Candidate candidate)
-        {
-            var position = Helper
-                .GetCandidateRandomWorldPosition(
-                    spawnWorldPosition: spawnerPosition,
-                    spawnerRadius: spawnerRadius,
-                    candidateRadius: radius);
-
-
-            var gridPosition = WorldPositionToGridPosition(position);
-            if (!_grids.TryGetValue(gridPosition, out var grid))
-            {
-                grid = CreateGrid(gridPosition);
-            }
-
-            if (!grid.GridCore.IsPointInAABB(position))
-            {
-                candidate = default;
-                return null;
-            }
-            
-            candidate = new Candidate
-            {
-                Radius = radius,
-                WorldPosition = position,
-                Cell = grid.GridCore.PositionToCellClamped(position)
-            };
-            
-            return grid;
-        }
-        private Vector2Int WorldPositionToGridPosition(Vector3 worldPosition)
-        {
-            return new Vector2Int(Mathf.FloorToInt((worldPosition.x - WorldPositionOffset.x) / GridProperties.Size.x),
-                Mathf.FloorToInt((worldPosition.y - WorldPositionOffset.y) / GridProperties.Size.y));
-        }
-        
-        private void GetGridCoordinate(int rawCoord, int gridLenght, int chunkPosition, out int chunkCoord, out int cellCoord)
-        {
-            if (rawCoord >= 0 && rawCoord <= gridLenght)
-            {
-                chunkCoord = chunkPosition;
-                cellCoord = rawCoord;
-                return;
-            }
-            
-            var shiftNegative = rawCoord < 0;
-            var shiftCount = shiftNegative ? Mathf.Abs(rawCoord) : Mathf.Abs(rawCoord - gridLenght);
-            var shiftChunks = (shiftCount / (gridLenght)) + 1;
-
-            chunkCoord = shiftNegative ? chunkPosition - shiftChunks : chunkPosition + shiftChunks;
-            
-            var xDelta = Mathf.Abs(rawCoord) - ((shiftChunks - 1) * (gridLenght));
-            cellCoord = shiftNegative ? gridLenght - xDelta + 1  : xDelta - gridLenght - 1;
-        }
-
 
         public void LinkPoint(WorldCoordinate coordinate, PointWorld point)
         {
@@ -311,5 +143,62 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
                 }
             }
         } 
+        
+        private GridWorld TryCreateCandidate(Vector3 spawnerPosition, float spawnerRadius, float radius,
+            out Candidate candidate)
+        {
+            var position = Helper
+                .GetCandidateRandomWorldPosition(
+                    spawnWorldPosition: spawnerPosition,
+                    spawnerRadius: spawnerRadius,
+                    candidateRadius: radius);
+
+
+            var gridPosition = WorldPositionToGridPosition(position);
+            if (!_grids.TryGetValue(gridPosition, out var grid))
+            {
+                grid = CreateGrid(gridPosition);
+            }
+
+            if (!grid.GridCore.IsPointInAABB(position))
+            {
+                candidate = default;
+                return null;
+            }
+            
+            candidate = new Candidate
+            {
+                Radius = radius,
+                WorldPosition = position,
+                Cell = grid.GridCore.PositionToCellClamped(position)
+            };
+            
+            return grid;
+        }
+        
+        private Vector2Int WorldPositionToGridPosition(Vector3 worldPosition)
+        {
+            return new Vector2Int(Mathf.FloorToInt((worldPosition.x - WorldPositionOffset.x) / GridProperties.Size.x),
+                Mathf.FloorToInt((worldPosition.y - WorldPositionOffset.y) / GridProperties.Size.y));
+        }
+        
+        private void GetGridCoordinate(int rawCoord, int gridLenght, int chunkPosition, out int chunkCoord, out int cellCoord)
+        {
+            if (rawCoord >= 0 && rawCoord <= gridLenght)
+            {
+                chunkCoord = chunkPosition;
+                cellCoord = rawCoord;
+                return;
+            }
+            
+            var shiftNegative = rawCoord < 0;
+            var shiftCount = shiftNegative ? Mathf.Abs(rawCoord) : Mathf.Abs(rawCoord - gridLenght);
+            var shiftChunks = (shiftCount / (gridLenght)) + 1;
+
+            chunkCoord = shiftNegative ? chunkPosition - shiftChunks : chunkPosition + shiftChunks;
+            
+            var xDelta = Mathf.Abs(rawCoord) - ((shiftChunks - 1) * (gridLenght));
+            cellCoord = shiftNegative ? gridLenght - xDelta + 1  : xDelta - gridLenght - 1;
+        }
     }
 }

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using dd_andromeda_poisson_disk_sampling.Propereties;
-using dd_andromeda_poisson_disk_sampling.Worlds;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 using Random = UnityEngine.Random;
