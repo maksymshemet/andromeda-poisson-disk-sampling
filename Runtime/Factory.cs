@@ -82,8 +82,8 @@ namespace dd_andromeda_poisson_disk_sampling
             Vector3 worldPositionOffset = default)
         {
             var cellSize = (minRadius + pointMargin) / Sqrt2;
-            var cellWidth =  Mathf.CeilToInt(size.x / cellSize);
-            var cellHeight = Mathf.CeilToInt(size.y / cellSize);
+            var cellWidth =  Mathf.FloorToInt(size.x / cellSize);
+            var cellHeight = Mathf.FloorToInt(size.y / cellSize);
             
             float[] radiusChangePercents = null;
             
@@ -96,25 +96,24 @@ namespace dd_andromeda_poisson_disk_sampling
                 }
             }
 
+            var chunkSize = new Vector2(
+                x:cellSize * cellWidth,
+                y:cellSize * cellHeight);
+            
             var gridProperties = new GridProperties
             {
                 CellHeight = cellHeight,
                 CellSize = cellSize,
                 CellWidth = cellWidth,
-                Size = size,
+                Size = chunkSize,
                 Tries = tries,
             };
 
-            var ps = new PointMultiRadSettings(minRadius, maxRadius)
+            var radius = new RadiusMinMax(minRadius + pointMargin, maxRadius + pointMargin, radiusChangePercents);
+            return new WorldMultiRad(radius:radius, worldPositionOffset: worldPositionOffset, gridProperties: gridProperties)
             {
-                Margin = pointMargin,
-                RadiusChangePercents = radiusChangePercents
-            };
-            var radius = new RadiusMinMax(minRadius, maxRadius, radiusChangePercents);
-            return new WorldMultiRad(chunkSize: size, 
-                radius:radius, worldPositionOffset: worldPositionOffset, gridProperties: gridProperties)
-            {
-                Tries = tries
+                Tries = tries,
+                Margin = pointMargin
             };
         }
         
@@ -177,12 +176,12 @@ namespace dd_andromeda_poisson_disk_sampling
 
         internal static GridWorld CreateWorldGrid(WorldMultiRad world, Vector2Int chunkPosition)
         {
-            var chunkSize = new Vector2(
-                x:world.GridProperties.CellSize * world.GridProperties.CellWidth,
-                y:world.GridProperties.CellSize * world.GridProperties.CellHeight);
+            // var chunkSize = new Vector2(
+            //     x:world.GridProperties.CellSize * world.GridProperties.CellWidth,
+            //     y:world.GridProperties.CellSize * world.GridProperties.CellHeight);
             
-            float cx = (chunkPosition.x * chunkSize.x) + world.WorldPositionOffset.x;
-            float cy = (chunkPosition.y * chunkSize.y) + world.WorldPositionOffset.y;
+            float cx = (chunkPosition.x * world.GridProperties.Size.x) + world.WorldPositionOffset.x;
+            float cy = (chunkPosition.y * world.GridProperties.Size.y) + world.WorldPositionOffset.y;
 
             var core = new GridCore(world.GridProperties)
             {
@@ -190,9 +189,8 @@ namespace dd_andromeda_poisson_disk_sampling
             };
             
             return new GridWorldMultiRad(gridCore: core, world: world, 
-                chunkPosition: chunkPosition, radius: world.Radius)
+                chunkPosition: chunkPosition)
             {
-                Tries = world.Tries,
             };
         }
     }

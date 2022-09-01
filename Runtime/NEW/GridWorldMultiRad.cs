@@ -6,14 +6,14 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
     public class GridWorldMultiRad : GridWorld
     {
         public GridWorldMultiRad(GridCore gridCore, WorldMultiRad world, 
-            Vector2Int chunkPosition, IRadius radius) : base(gridCore, world, chunkPosition, radius)
+            Vector2Int chunkPosition) : base(gridCore, world, chunkPosition)
         {
         }
 
         protected override bool TryCreateCandidate(Vector3 spawnerPosition, float spawnerRadius, int currentTry, int maxTries,
             out Candidate candidate)
         {
-            var radius = radiusProvider.GetRadius(currentTry, maxTries);
+            var radius = World.Radius.GetRadius(currentTry, maxTries);
             if (radius == 0)
             {
                 candidate = default;
@@ -48,9 +48,9 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
             return Mathf.Max(3, Mathf.CeilToInt(pointRadius / GridCore.Properties.CellSize));
         }
 
-        public override bool TrySpawnPoint(Vector3 spawnerPosition, float spawnerRadius, out PointWorld point)
+        public override bool TryAddPoint(Vector3 worldPosition, float radius, int x, int y, out PointWorld point, bool force = false)
         {
-            if (!base.TrySpawnPoint(spawnerPosition, spawnerRadius, out point)) return false;
+            if (!base.TryAddPoint(worldPosition, radius, x, y, out point, force)) return false;
             
             var cell = GridCore.PositionToCellFloor(point.WorldPosition);
             var deltaRadius = Mathf.RoundToInt(point.Radius / GridCore.Properties.CellSize);

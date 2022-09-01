@@ -162,14 +162,14 @@ namespace dd_andromeda_poisson_disk_sampling.Demo
             foreach (var grid in _world.Grids)
             {
 
-                worldOffsetX = _world.ChunkSize.x * grid.ChunkPosition.x;
-                worldOffsetY = _world.ChunkSize.y * grid.ChunkPosition.y;
+                worldOffsetX = _world.GridProperties.Size.x * grid.ChunkPosition.x;
+                worldOffsetY = _world.GridProperties.Size.y * grid.ChunkPosition.y;
                 
                 Gizmos.color = new Color(1f, 0f, 0f, GridColor.a);
                 Gizmos.DrawWireCube(
-                    new Vector3((_world.ChunkSize.x / 2f) + worldOffsetX, 
-                        (_world.ChunkSize.y / 2f) + worldOffsetY), 
-                    new Vector3(_world.ChunkSize.x, _world.ChunkSize.y));
+                    new Vector3((_world.GridProperties.Size.x / 2f) + worldOffsetX, 
+                        (_world.GridProperties.Size.y / 2f) + worldOffsetY), 
+                    new Vector3(_world.GridProperties.Size.x, _world.GridProperties.Size.y));
                 
                 Gizmos.color = GridColor;
                 for (int x = 0; x < grid.GridCore.Properties.CellWidth; x++)

@@ -12,19 +12,13 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
         public GridCore GridCore { get; }
         public WorldMultiRad World { get; }
         public Vector2Int ChunkPosition { get; }
-        public int Tries { get; set; }
-        public float Margin { get; set; }
-        
-        protected readonly IRadius radiusProvider;
         
         private readonly List<PointWorld> _points;
         private Stack<int> _emptyPointIndices;
-        
         private Dictionary<Vector2Int, PointWorld> _linkedPoints; 
 
-        protected GridWorld(GridCore gridCore,WorldMultiRad world, Vector2Int chunkPosition, IRadius radius)
+        protected GridWorld(GridCore gridCore,WorldMultiRad world, Vector2Int chunkPosition)
         {
-            radiusProvider = radius;
             GridCore = gridCore;
             World = world;
             ChunkPosition = chunkPosition;
@@ -68,7 +62,7 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
         public List<PointWorld> Fill(Vector3 spawnPosition)
         {
             PointWorld pointIndex;
-            if(!TrySpawnPoint(spawnPosition, radiusProvider.GetRadius(0, Tries), out pointIndex))
+            if(!TrySpawnPoint(spawnPosition, World.Radius.GetRadius(0, World.Tries), out pointIndex))
             {
                 throw new Exception("Couldn't spawn the point");
             }
@@ -126,18 +120,17 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
 
         public bool TrySpawnPoint(Vector3 spawnerPosition, out PointWorld point)
         {
-            return TrySpawnPoint(spawnerPosition, radiusProvider.GetRadius(0, Tries), out point);
+            return TrySpawnPoint(spawnerPosition, World.Radius.GetRadius(0, World.Tries), out point);
         }
         
-        public virtual bool TrySpawnPoint(Vector3 spawnerPosition, float spawnerRadius, out PointWorld point)
+        public bool TrySpawnPoint(Vector3 spawnerPosition, float spawnerRadius, out PointWorld point)
         {
-            for (var i = 0; i < Tries; i++)
+            for (var i = 0; i < World.Tries; i++)
             {
-                if (TryCreateCandidate(spawnerPosition, spawnerRadius, i, Tries, out var candidate))
+                if (TryCreateCandidate(spawnerPosition, spawnerRadius, i, World.Tries, out var candidate))
                 {
-                    if (IsCandidateValid(candidate))
+                    if (TrySpawnPoint(candidate, out point))
                     {
-                        TryAddPoint(candidate.WorldPosition, candidate.Radius, candidate.Cell.x, candidate.Cell.y, out point, true);
                         return true;
                     }
                 }
@@ -146,15 +139,27 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
             point = default;
             return false;
         }
+
+        public bool TrySpawnPoint(Candidate candidate, out PointWorld point)
+        {
+            if (IsCandidateValid(candidate))
+            {
+                return TryAddPoint(candidate.WorldPosition, 
+                    candidate.Radius, candidate.Cell.x, candidate.Cell.y, out point, true);
+            }
+            
+            point = default;
+            return false;
+        }
         
-        public bool TryAddPoint(Vector3 worldPosition, float radius, int x, int y, out PointWorld point, bool force = false)
+        public virtual bool TryAddPoint(Vector3 worldPosition, float radius, int x, int y, out PointWorld point, bool force = false)
         {
             if (force || GridCore.IsCellEmpty(x, y))
             {
                 point = new PointWorld
                 {
                     WorldPosition = worldPosition,
-                    Radius = radius - Margin,
+                    Radius = radius - World.Margin,
                     Cell = new Vector2Int(x, y),
                     ChunkPosition = ChunkPosition
                 };
