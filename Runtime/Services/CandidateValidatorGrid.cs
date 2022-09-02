@@ -26,7 +26,7 @@ namespace dd_andromeda_poisson_disk_sampling.Services
                     prevHorizontal = pointIndex;
                     
                     var existingPoint = grid.GetPoint(pointIndex - 1);
-                    if (IsCandidateIntersectWithPoint(candidateWorldPosition,candidateRadius, existingPoint))
+                    if (IsCandidateIntersectWithPoint(candidateWorldPosition, candidateRadius, existingPoint))
                     {
                         return false;
                     }

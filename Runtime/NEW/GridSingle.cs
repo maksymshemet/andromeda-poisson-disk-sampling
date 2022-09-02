@@ -49,7 +49,7 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
             return -1;
         }
         
-        protected abstract bool TryCreateCandidate(Vector3 spawnerPosition, float spawnerRadius, int currentTry, int maxTries, out Candidate candidate);
+        protected abstract bool TryCreateCandidate(Vector3 spawnerPosition, float spawnerRadius, int currentTry, int maxTries, out Point candidate);
 
         protected abstract int GetSearchRange(float pointRadius);
 
@@ -57,7 +57,7 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
         {
         }
         
-        private bool IsCandidateValid(Candidate candidate)
+        private bool IsCandidateValid(Point candidate)
         {
             var searchRange = GetSearchRange(candidate.Radius);
             var regionCoordinates = GridProperties.LookupRegionClamped(candidate.Cell, searchRange);
@@ -75,7 +75,7 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
                     prevHorizontal = pointIndex;
                     
                     var existingPoint = _points[pointIndex - 1];
-                    if (IsCandidateIntersectWithPoint(candidate, existingPoint))
+                    if (candidate.IsIntersectWithPoint(existingPoint))
                     {
                         return false;
                     }
@@ -83,13 +83,6 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
             }
             
             return true;
-        }
-        
-        private bool IsCandidateIntersectWithPoint(Candidate candidate, Point point)
-        {
-            var sqrDst = (point.WorldPosition - candidate.WorldPosition).sqrMagnitude;
-            var radius = point.Radius + candidate.Radius;
-            return sqrDst < (radius * radius);
         }
     }
 }

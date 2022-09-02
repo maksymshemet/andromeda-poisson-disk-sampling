@@ -58,7 +58,7 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
         {
             if (GridCore.IsCellEmpty(x, y))
             {
-                if (_linkedPoints != null)
+                if (!excludeLinked && _linkedPoints != null)
                 {
                     if (_linkedPoints.TryGetValue(new Vector2Int(x, y), out var lp))
                         return lp;
@@ -94,68 +94,59 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
             return true;
         }
         
-        public bool TrySpawnPointNear(Candidate candidate, out PointWorld point)
+        public bool TrySpawnPointNear(PointWorld candidate)
         {
-            if (IsCandidateValid(candidate))
+            if (GridCore.IsCellEmpty(candidate.Cell.x, candidate.Cell.y) && IsCandidateValid(candidate))
             {
-                return TryAddPoint(candidate.WorldPosition, 
-                    candidate.Radius, candidate.Cell.x, candidate.Cell.y, out point, true);
+                return TryAddPoint(candidate);
             }
             
-            point = default;
             return false;
         }
         
-        public bool TryCreateCandidate(Vector3 spawnerPosition, out Candidate candidate)
-        {
-            return TryCreateCandidate(spawnerPosition, Radius.GetRadius(0, Tries), 0, Tries, out candidate);
+        public PointWorld TryCreateCandidate(Vector3 spawnerPosition)
+        { 
+            return TryCreateCandidate(spawnerPosition, Radius.GetRadius(0, Tries), 0, Tries);
         }
         
-        public bool TryCreateCandidate(Vector3 spawnerPosition, float spawnerRadius, out Candidate candidate)
+        public PointWorld TryCreateCandidate(Vector3 spawnerPosition, float spawnerRadius)
         {
-            return TryCreateCandidate(spawnerPosition, spawnerRadius, 0, Tries, out candidate);
+            return TryCreateCandidate(spawnerPosition, spawnerRadius, 0, Tries);
         }
         
-        public bool TryCreateCandidate(Vector3 spawnerPosition, int currentTry, int maxTries, out Candidate candidate)
+        public PointWorld TryCreateCandidate(Vector3 spawnerPosition, int currentTry, int maxTries)
         {
-            return TryCreateCandidate(spawnerPosition, Radius.GetRadius(currentTry, maxTries), currentTry, maxTries, out candidate);
+            return TryCreateCandidate(spawnerPosition, Radius.GetRadius(currentTry, maxTries), currentTry, maxTries);
         }
         
-        public abstract bool TryCreateCandidate(Vector3 spawnerPosition, float spawnerRadius, int currentTry, int maxTries, out Candidate candidate);
+        public abstract PointWorld TryCreateCandidate(Vector3 spawnerPosition, float spawnerRadius, int currentTry, int maxTries);
 
-        protected virtual bool TryAddPoint(Vector3 worldPosition, float radius, int x, int y, out PointWorld point, bool force = false)
+        protected virtual bool TryAddPoint(PointWorld point)
         {
-            if (force || GridCore.IsCellEmpty(x, y))
+            if (GridCore.IsCellEmpty(point.Cell.x, point.Cell.y))
             {
-                point = new PointWorld
-                {
-                    WorldPosition = worldPosition,
-                    Radius = radius - World.Margin,
-                    Cell = new Vector2Int(x, y),
-                    ChunkPosition = ChunkPosition
-                };
-
+                point.ChunkPosition = ChunkPosition;
+                point.Radius -= World.Margin;
+                
                 if (_emptyPointIndices?.Count > 0)
                 {
                     var index = _emptyPointIndices.Pop();
                     _points[index] = point;
-                    GridCore.SetCellValue(x, y, index + 1);
+                    GridCore.SetCellValue(point.Cell.x, point.Cell.y, index + 1);
                 }
                 else
                 {
                     _points.Add(point);
-                    GridCore.SetCellValue(x, y, _points.Count);
+                    GridCore.SetCellValue(point.Cell.x, point.Cell.y, _points.Count);
                 }
                 return true;
             }
-
-            point = default;
             return false;
         }
 
         protected abstract int GetSearchRange(float pointRadius);
         
-        private bool IsCandidateValid(Candidate candidate)
+        private bool IsCandidateValid(PointWorld candidate)
         {
             var searchRange = GetSearchRange(candidate.Radius);
             var regionCoordinates = GridCore.LookupRegion(candidate.Cell, searchRange);
@@ -175,17 +166,17 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
             return true;
         }
 
-        private bool IsCandidateValidInGrid(int x, int y, Candidate candidate)
+        private bool IsCandidateValidInGrid(int x, int y, PointWorld candidate)
         {
             if (GridCore.IsCellEmpty(x, y))
             {
-                if(_linkedPoints == null)
-                    return true;
-
-                var key = new Vector2Int(x, y);
-                if (_linkedPoints.TryGetValue(key, out var linkedPoint))
+                if (_linkedPoints != null)
                 {
-                    return !IsCandidateIntersectWithPoint(candidate, linkedPoint);
+                    var key = new Vector2Int(x, y);
+                    if (_linkedPoints.TryGetValue(key, out var linkedPoint))
+                    {
+                        return !candidate.IsIntersectWithPoint(linkedPoint);
+                    }
                 }
                 
                 return true;
@@ -193,10 +184,10 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
             
             var pointIndex = GridCore.GetCellValue(x, y);
             var point = _points[pointIndex - 1]; 
-            return !IsCandidateIntersectWithPoint(candidate, point);
+            return !candidate.IsIntersectWithPoint(point);
         }
         
-        private bool IsCandidateValidInWorld(int x, int y, Candidate candidate)
+        private bool IsCandidateValidInWorld(int x, int y, PointWorld candidate)
         {
             var realWorld = World.GetRealWorldCoordinate(ChunkPosition, x, y);
             var point = World.GetPoint(realWorld);
@@ -205,14 +196,7 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
                 return true;
             }
 
-            return !IsCandidateIntersectWithPoint(candidate, point);
-        }
-        
-        private bool IsCandidateIntersectWithPoint(Candidate candidate, Point point)
-        {
-            var sqrDst = (point.WorldPosition - candidate.WorldPosition).sqrMagnitude;
-            var radius = point.Radius + candidate.Radius;
-            return sqrDst < (radius * radius);
+            return !candidate.IsIntersectWithPoint(point);
         }
     }
 }

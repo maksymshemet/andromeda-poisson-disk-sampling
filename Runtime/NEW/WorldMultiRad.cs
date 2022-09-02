@@ -52,24 +52,16 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
             return _grids.TryGetValue(chunk, out var grid) ? grid : null;
         }
 
-        public PointWorld GetPoint(WorldCoordinate worldCoordinate, bool excludeCached = false, bool excludeLinked = false)
+        public PointWorld GetPoint(WorldCoordinate worldCoordinate, bool excludeLinked = false)
         {
-            return GetPoint(worldCoordinate.ChunkPosition, worldCoordinate.CellX, worldCoordinate.CellY, excludeCached, excludeLinked);
+            return GetPoint(worldCoordinate.ChunkPosition, worldCoordinate.CellX, worldCoordinate.CellY, excludeLinked);
         }
 
-        public PointWorld GetPoint(Vector2Int chunk, int x, int y, bool excludeCached = false, bool excludeLinked = false)
+        public PointWorld GetPoint(Vector2Int chunk, int x, int y, bool excludeLinked = false)
         {
             if (_grids.TryGetValue(chunk, out var grid))
             {
                 return grid.GetPoint(x, y, excludeLinked);
-            }
-            
-            if (excludeCached) return null;
-
-            if (_cachedPoints.TryGetValue(chunk, out var gridPoints))
-            {
-                if (gridPoints.TryGetValue(new Vector2Int(x, y), out var point))
-                    return point;
             }
             
             return null;
@@ -90,7 +82,7 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
             return new WorldCoordinate(new Vector2Int(targetGridX, targetGridY), targetCellX, targetCellY);
         }
 
-        public bool TrySpawnPointFrom(PointWorld spawnPoint, out PointWorld result)
+        public PointWorld TrySpawnPointFrom(PointWorld spawnPoint)
         {
             for (var i = 0; i < Tries; i++)
             {
@@ -99,14 +91,13 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
 
                 var grid = TryCreateCandidate(spawnPoint.WorldPosition, 
                     spawnPoint.Radius, radius, out var candidate);
-                if(grid.TrySpawnPointNear(candidate, out result))
+                if(grid.TrySpawnPointNear(candidate))
                 {
-                    return true;
+                    return candidate;
                 }
             }
 
-            result = default;
-            return false;
+            return null;
         }
 
         public void LinkPoint(WorldCoordinate coordinate, PointWorld point)
@@ -145,7 +136,7 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
         } 
         
         private GridWorld TryCreateCandidate(Vector3 spawnerPosition, float spawnerRadius, float radius,
-            out Candidate candidate)
+            out PointWorld candidate)
         {
             var position = Helper
                 .GetCandidateRandomWorldPosition(
@@ -166,7 +157,7 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
                 return null;
             }
             
-            candidate = new Candidate
+            candidate = new PointWorld
             {
                 Radius = radius,
                 WorldPosition = position,

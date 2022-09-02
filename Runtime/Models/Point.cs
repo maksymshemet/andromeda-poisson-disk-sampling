@@ -5,7 +5,13 @@ public class Point
     public Vector3 WorldPosition;
     public float Radius;
     public Vector2Int Cell;
-
+    public bool IsIntersectWithPoint(Point point)
+    {
+        var sqrDst = (WorldPosition - point.WorldPosition).sqrMagnitude;
+        var radius = Radius + point.Radius;
+        return sqrDst < (radius * radius);
+    }
+    
     public override bool Equals(object obj)
     {
         if (obj is Point point)

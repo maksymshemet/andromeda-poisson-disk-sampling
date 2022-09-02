@@ -10,14 +10,12 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
         {
         }
 
-        public override bool TryCreateCandidate(Vector3 spawnerPosition, float spawnerRadius, int currentTry, int maxTries,
-            out Candidate candidate)
+        public override PointWorld TryCreateCandidate(Vector3 spawnerPosition, float spawnerRadius, int currentTry, int maxTries)
         {
             var radius = World.Radius.GetRadius(currentTry, maxTries);
             if (radius == 0)
             {
-                candidate = default;
-                return false;
+                return null;
             }
 
             var position = Helper
@@ -28,19 +26,16 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
             
             if(!GridCore.IsPointInAABB(position))
             {
-                candidate = default;
-                return false;
+                return null;
             }
             
-            candidate = new Candidate
+            return new PointWorld
             {
                 Radius = radius,
                 WorldPosition = position,
                 Cell = GridCore.PositionToCellClamped(position)
 
             };
-            
-            return true;
         }
 
         protected override int GetSearchRange(float pointRadius)
@@ -48,9 +43,9 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
             return Mathf.Max(3, Mathf.CeilToInt(pointRadius / GridCore.Properties.CellSize));
         }
 
-        protected override bool TryAddPoint(Vector3 worldPosition, float radius, int x, int y, out PointWorld point, bool force = false)
+        protected override bool TryAddPoint(PointWorld point)
         {
-            if (!base.TryAddPoint(worldPosition, radius, x, y, out point, force)) return false;
+            if (!base.TryAddPoint(point)) return false;
             
             var cell = GridCore.PositionToCellFloor(point.WorldPosition);
             var deltaRadius = Mathf.RoundToInt(point.Radius / GridCore.Properties.CellSize);

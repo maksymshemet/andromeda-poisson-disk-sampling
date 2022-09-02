@@ -17,10 +17,9 @@ namespace dd_andromeda_poisson_disk_sampling
         
         GridCore GridCore { get; }
         
-        bool TrySpawnPointNear(Candidate candidate, out PointWorld point);
+        bool TrySpawnPointNear(PointWorld candidate);
 
-        bool TryCreateCandidate(Vector3 spawnerPosition, float spawnerRadius, int currentTry, int maxTries,
-            out Candidate candidate);
+        PointWorld TryCreateCandidate(Vector3 spawnerPosition, float spawnerRadius, int currentTry, int maxTries);
 
         List<PointWorld> GetPoints();
     }
@@ -70,8 +69,8 @@ namespace dd_andromeda_poisson_disk_sampling
 
         public static List<PointWorld> Fill(this IFiller filler, Vector3 spawnPosition, int tries)
         {
-            PointWorld point;
-            if(!TrySpawnPoint(filler, spawnPosition, filler.Radius.GetRadius(0, tries), tries, out point))
+            PointWorld point = TrySpawnPoint(filler, spawnPosition, filler.Radius.GetRadius(0, tries), tries);
+            if(point == null)
             {
                 throw new Exception("Couldn't spawn the point");
             }
@@ -83,8 +82,8 @@ namespace dd_andromeda_poisson_disk_sampling
                 {
                     var spawnIndex = Random.Range(0, spawnPoints.Count);
                     var spawnPoint = spawnPoints[spawnIndex];
-
-                    if (TrySpawnPoint(filler, spawnPoint.WorldPosition, spawnPoint.Radius, tries, out point))
+                    point = TrySpawnPoint(filler, spawnPoint.WorldPosition, spawnPoint.Radius, tries);
+                    if (point != null)
                     {
                         spawnPoints.Add(point);
                     }
@@ -107,19 +106,19 @@ namespace dd_andromeda_poisson_disk_sampling
             return filler.GetPoints();
         }
         
-        private static bool TrySpawnPoint(IFiller filler, Vector3 spawnPosition, float radius, int tries, out PointWorld point) 
+        private static PointWorld TrySpawnPoint(IFiller filler, Vector3 spawnPosition, float radius, int tries) 
         {
             for (var i = 0; i < tries; i++)
             {
-                if (filler.TryCreateCandidate(spawnPosition, radius, i, tries, out var candidate))
+                var candidate = filler.TryCreateCandidate(spawnPosition, radius, i, tries);
+                if (candidate != null)
                 {
-                    if(filler.TrySpawnPointNear(candidate, out point))
-                        return true;
+                    if(filler.TrySpawnPointNear(candidate))
+                        return candidate;
                 }
             }
 
-            point = default;
-            return false;
+            return null;
         }
         
 #if UNITY_EDITOR
