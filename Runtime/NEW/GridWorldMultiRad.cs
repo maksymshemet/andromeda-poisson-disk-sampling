@@ -43,7 +43,7 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
             return Mathf.Max(3, Mathf.CeilToInt(pointRadius / GridCore.Properties.CellSize));
         }
 
-        protected override bool TryAddPoint(PointWorld point)
+        public override bool TryAddPoint(PointWorld point)
         {
             if (!base.TryAddPoint(point)) return false;
             

@@ -52,6 +52,17 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
             return _grids.TryGetValue(chunk, out var grid) ? grid : null;
         }
 
+        public IEnumerable<PointWorld> GetPoints()
+        {
+            foreach (var grid in _grids.Values)
+            {
+                foreach (var point in grid.GetPoints())
+                {
+                    yield return point;
+                }
+            }
+        }
+
         public PointWorld GetPoint(WorldCoordinate worldCoordinate, bool excludeLinked = false)
         {
             return GetPoint(worldCoordinate.ChunkPosition, worldCoordinate.CellX, worldCoordinate.CellY, excludeLinked);
@@ -91,7 +102,7 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
 
                 var grid = TryCreateCandidate(spawnPoint.WorldPosition, 
                     spawnPoint.Radius, radius, out var candidate);
-                if(grid.TrySpawnPointNear(candidate))
+                if(grid.TryAddPoint(candidate))
                 {
                     return candidate;
                 }

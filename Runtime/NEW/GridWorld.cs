@@ -15,7 +15,7 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
 
         private readonly List<PointWorld> _points;
         private Stack<int> _emptyPointIndices;
-        private Dictionary<Vector2Int, PointWorld> _linkedPoints; 
+        private Dictionary<int, PointWorld> _linkedPoints; 
 
         protected GridWorld(GridCore gridCore,WorldMultiRad world, Vector2Int chunkPosition)
         {
@@ -28,9 +28,9 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
         public void LinkPoint(int x, int y, in PointWorld point)
         {
             if (_linkedPoints == null)
-                _linkedPoints = new Dictionary<Vector2Int, PointWorld>();
-            
-            var key = new Vector2Int(x, y);
+                _linkedPoints = new Dictionary<int, PointWorld>();
+
+            var key = GridCore.FlatCoordinates(x, y);
             
             _linkedPoints[key] = point;
         }
@@ -39,7 +39,7 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
         {
             if(_linkedPoints == null) return;
         
-            var key = new Vector2Int(x, y);
+            var key = GridCore.FlatCoordinates(x, y);
             if (_linkedPoints.TryGetValue(key, out var linkedPoint))
             {
                 if (linkedPoint == point)
@@ -49,7 +49,7 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
             }
         }
 
-        public List<PointWorld> GetPoints()
+        public IReadOnlyList<PointWorld> GetPoints()
         {
             return _points;
         }
@@ -60,7 +60,7 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
             {
                 if (!excludeLinked && _linkedPoints != null)
                 {
-                    if (_linkedPoints.TryGetValue(new Vector2Int(x, y), out var lp))
+                    if (_linkedPoints.TryGetValue(GridCore.FlatCoordinates(x, y), out var lp))
                         return lp;
                 }
                 return null;
@@ -94,16 +94,6 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
             return true;
         }
         
-        public bool TrySpawnPointNear(PointWorld candidate)
-        {
-            if (GridCore.IsCellEmpty(candidate.Cell.x, candidate.Cell.y) && IsCandidateValid(candidate))
-            {
-                return TryAddPoint(candidate);
-            }
-            
-            return false;
-        }
-        
         public PointWorld TryCreateCandidate(Vector3 spawnerPosition)
         { 
             return TryCreateCandidate(spawnerPosition, Radius.GetRadius(0, Tries), 0, Tries);
@@ -121,9 +111,9 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
         
         public abstract PointWorld TryCreateCandidate(Vector3 spawnerPosition, float spawnerRadius, int currentTry, int maxTries);
 
-        protected virtual bool TryAddPoint(PointWorld point)
+        public virtual bool TryAddPoint(PointWorld point)
         {
-            if (GridCore.IsCellEmpty(point.Cell.x, point.Cell.y))
+            if (GridCore.IsCellEmpty(point.Cell.x, point.Cell.y) && IsCandidateValid(point))
             {
                 point.ChunkPosition = ChunkPosition;
                 point.Radius -= World.Margin;
@@ -151,38 +141,65 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
             var searchRange = GetSearchRange(candidate.Radius);
             var regionCoordinates = GridCore.LookupRegion(candidate.Cell, searchRange);
 
-            for (var y = regionCoordinates.StartY; y <= regionCoordinates.EndY; y++)
+            if (GridCore.IsRegionInsideGrid(regionCoordinates))
             {
-                for (var x = regionCoordinates.StartX; x <= regionCoordinates.EndX; x++)
+                for (var y = regionCoordinates.StartY; y < regionCoordinates.EndY; y++)
                 {
-                    var r = GridCore.IsCellInGrid(x, y)
-                        ? IsCandidateValidInGrid(x, y, candidate)
-                        : IsCandidateValidInWorld(x, y, candidate);
-
-                    if (!r) return false;
+                    var coordStart = GridCore.FlatCoordinates(regionCoordinates.StartX, y);
+                    var coordEnd =  GridCore.FlatCoordinates(regionCoordinates.EndX, y);
+                    for (var x = coordStart; x <= coordEnd; x++)
+                    {
+                        if (!IsCandidateValidInGrid(x, candidate))
+                        {
+                            return false;
+                        }
+                    }
                 }
             }
+            else
+            {
+                for (var y = regionCoordinates.StartY; y <= regionCoordinates.EndY; y++)
+                {
+                    for (var x = regionCoordinates.StartX; x <= regionCoordinates.EndX; x++)
+                    {
+                        if (GridCore.IsCellInGrid(x, y))
+                        {
+                            var index = GridCore.FlatCoordinates(x, y);
+                            if (!IsCandidateValidInGrid(index, candidate))
+                            {
+                                return false;
+                            }
+                        }
+                        else
+                        {
+                            if (!IsCandidateValidInWorld(x, y, candidate))
+                            {
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+            
             
             return true;
         }
 
-        private bool IsCandidateValidInGrid(int x, int y, PointWorld candidate)
+        private bool IsCandidateValidInGrid(int index, PointWorld candidate)
         {
-            if (GridCore.IsCellEmpty(x, y))
+            if (GridCore.IsCellEmpty(index))
             {
                 if (_linkedPoints != null)
                 {
-                    var key = new Vector2Int(x, y);
-                    if (_linkedPoints.TryGetValue(key, out var linkedPoint))
+                    if (_linkedPoints.TryGetValue(index, out var linkedPoint))
                     {
                         return !candidate.IsIntersectWithPoint(linkedPoint);
                     }
                 }
-                
                 return true;
             }
             
-            var pointIndex = GridCore.GetCellValue(x, y);
+            var pointIndex = GridCore.GetCellValue(index);
             var point = _points[pointIndex - 1]; 
             return !candidate.IsIntersectWithPoint(point);
         }

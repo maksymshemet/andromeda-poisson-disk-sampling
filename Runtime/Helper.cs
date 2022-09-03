@@ -17,11 +17,11 @@ namespace dd_andromeda_poisson_disk_sampling
         
         GridCore GridCore { get; }
         
-        bool TrySpawnPointNear(PointWorld candidate);
+        bool TryAddPoint(PointWorld candidate);
 
         PointWorld TryCreateCandidate(Vector3 spawnerPosition, float spawnerRadius, int currentTry, int maxTries);
 
-        List<PointWorld> GetPoints();
+        IReadOnlyList<PointWorld> GetPoints();
     }
     
     public static class Helper
@@ -52,22 +52,22 @@ namespace dd_andromeda_poisson_disk_sampling
             return yy * yy;
         }
 
-        public static List<PointWorld> Fill(this IFiller filler, Vector3 spawnPosition)
+        public static IReadOnlyList<PointWorld> Fill(this IFiller filler, Vector3 spawnPosition)
         {
             return Fill(filler, spawnPosition, filler.Tries);
         }
         
-        public static List<PointWorld> Fill(this IFiller filler)
+        public static IReadOnlyList<PointWorld> Fill(this IFiller filler)
         {
             return Fill(filler, filler.GridCore.Center, filler.Tries);
         }
 
-        public static List<PointWorld> Fill(this IFiller filler, int tries)
+        public static IReadOnlyList<PointWorld> Fill(this IFiller filler, int tries)
         {
             return Fill(filler, filler.GridCore.Center, tries);
         }
 
-        public static List<PointWorld> Fill(this IFiller filler, Vector3 spawnPosition, int tries)
+        public static IReadOnlyList<PointWorld> Fill(this IFiller filler, Vector3 spawnPosition, int tries)
         {
             PointWorld point = TrySpawnPoint(filler, spawnPosition, filler.Radius.GetRadius(0, tries), tries);
             if(point == null)
@@ -113,7 +113,7 @@ namespace dd_andromeda_poisson_disk_sampling
                 var candidate = filler.TryCreateCandidate(spawnPosition, radius, i, tries);
                 if (candidate != null)
                 {
-                    if(filler.TrySpawnPointNear(candidate))
+                    if(filler.TryAddPoint(candidate))
                         return candidate;
                 }
             }
@@ -122,7 +122,7 @@ namespace dd_andromeda_poisson_disk_sampling
         }
         
 #if UNITY_EDITOR
-        private static bool EditorCheckForEndlessSpawn(ICollection spawnPoints, GridCore gridCore, ICollection points)
+        private static bool EditorCheckForEndlessSpawn(ICollection spawnPoints, GridCore gridCore, IReadOnlyCollection<PointWorld> points)
         {
             if (gridCore.Properties.CellWidth * gridCore.Properties.CellHeight >= points.Count) return false;
             

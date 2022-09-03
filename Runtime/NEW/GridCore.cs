@@ -94,7 +94,15 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
                    worldPosition.x <= WorldPositionOffset.x + Properties.Size.x &&
                    worldPosition.y <= WorldPositionOffset.y + Properties.Size.y;
         }
-
+        
+        public bool IsRegionInsideGrid(RegionCoordinates coordinates)
+        {
+            return coordinates.StartX >= 0 &&
+                   coordinates.StartY >= 0 &&
+                   coordinates.EndX < Properties.CellWidth &&
+                   coordinates.EndY < Properties.CellHeight;
+        }
+        
         public bool IsCellInGrid(int cellX, int cellY)
         {
             return cellX >= 0 && cellX < Properties.CellWidth && cellY >= 0 && cellY < Properties.CellHeight;
