@@ -12,14 +12,15 @@ namespace dd_andromeda_poisson_disk_sampling
 
     public interface IFiller
     {
-        IRadius Radius { get; }
+        // IRadius Radius { get; }
         int Tries { get; }
-        
         GridCore GridCore { get; }
         
         bool TryAddPoint(PointWorld candidate);
 
         bool TryCreateCandidate(Vector3 spawnerPosition, float spawnerRadius, int currentTry, int maxTries, out PointWorld candidate);
+        
+        bool TryCreateCandidate(Vector3 spawnerPosition, int currentTry, int maxTries, out PointWorld candidate);
 
         IReadOnlyList<PointWorld> GetPoints();
     }
@@ -69,7 +70,7 @@ namespace dd_andromeda_poisson_disk_sampling
 
         public static IReadOnlyList<PointWorld> Fill(this IFiller filler, Vector3 spawnPosition, int tries)
         {
-            PointWorld point = TrySpawnPoint(filler, spawnPosition, filler.Radius.GetRadius(0, tries), tries);
+            PointWorld point = TrySpawnPoint(filler, spawnPosition, tries);
             if(point == null)
             {
                 throw new Exception("Couldn't spawn the point");
@@ -82,7 +83,7 @@ namespace dd_andromeda_poisson_disk_sampling
                 {
                     var spawnIndex = Random.Range(0, spawnPoints.Count);
                     var spawnPoint = spawnPoints[spawnIndex];
-                    point = TrySpawnPoint(filler, spawnPoint.WorldPosition, spawnPoint.Radius, tries);
+                    point = TrySpawnPoint(filler, spawnPoint.WorldPosition, tries, spawnPoint.Radius);
                     if (point != null)
                     {
                         spawnPoints.Add(point);
@@ -106,14 +107,25 @@ namespace dd_andromeda_poisson_disk_sampling
             return filler.GetPoints();
         }
         
-        private static PointWorld TrySpawnPoint(IFiller filler, Vector3 spawnPosition, float radius, int tries) 
+        private static PointWorld TrySpawnPoint(IFiller filler, Vector3 spawnPosition, int tries, float radius = -1) 
         {
             for (var i = 0; i < tries; i++)
             {
-                if (filler.TryCreateCandidate(spawnPosition, radius, i, tries, out var candidate))
+                if (radius == -1)
                 {
-                    if(filler.TryAddPoint(candidate))
-                        return candidate;
+                    if (filler.TryCreateCandidate(spawnPosition, i, tries, out var candidate))
+                    {
+                        if(filler.TryAddPoint(candidate))
+                            return candidate;
+                    }
+                }
+                else
+                {
+                    if (filler.TryCreateCandidate(spawnPosition, radius, i, tries, out var candidate))
+                    {
+                        if(filler.TryAddPoint(candidate))
+                            return candidate;
+                    }
                 }
             }
 

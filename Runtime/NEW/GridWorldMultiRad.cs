@@ -1,44 +1,12 @@
-using dd_andromeda_poisson_disk_sampling.Propereties.Radius;
 using UnityEngine;
 
 namespace dd_andromeda_poisson_disk_sampling.Propereties
 {
     public class GridWorldMultiRad : GridWorld
     {
-        public GridWorldMultiRad(GridCore gridCore, WorldMultiRad world, 
+        public GridWorldMultiRad(GridCore gridCore, World world, 
             Vector2Int chunkPosition) : base(gridCore, world, chunkPosition)
         {
-        }
-
-        public override bool TryCreateCandidate(Vector3 spawnerPosition, float spawnerRadius, int currentTry, int maxTries, out PointWorld candidate)
-        {
-            var radius = World.Radius.GetRadius(currentTry, maxTries);
-            if (radius == 0)
-            {
-                candidate = null;
-                return false;
-            }
-
-            var position = Helper
-                .GetCandidateRandomWorldPosition(
-                    spawnWorldPosition: spawnerPosition,
-                    spawnerRadius: spawnerRadius,
-                    candidateRadius: radius);
-            
-            if(!GridCore.IsPointInAABB(position))
-            {
-                candidate = null;
-                return false;
-            }
-            
-            candidate = new PointWorld
-            {
-                Radius = radius,
-                WorldPosition = position,
-                Cell = GridCore.PositionToCellClamped(position)
-
-            };
-            return true;
         }
 
         protected override int GetSearchRange(float pointRadius)

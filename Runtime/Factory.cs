@@ -1,3 +1,4 @@
+using System.Linq;
 using dd_andromeda_poisson_disk_sampling.Propereties;
 using dd_andromeda_poisson_disk_sampling.Propereties.Radius;
 using dd_andromeda_poisson_disk_sampling.Services;
@@ -72,7 +73,40 @@ namespace dd_andromeda_poisson_disk_sampling
             };
         }
 
-        public static WorldMultiRad CreateWorldNEW(Vector2Int size,
+        public static World CreateWorld(Vector2Int size,
+            float radius,
+            int tries = 20,
+            float pointMargin = 0,
+            AnimationCurve radiusChangeCurve = null,
+            Vector3 worldPositionOffset = default)
+        {
+            var cellSize = (radius + pointMargin) / Sqrt2;
+            var cellWidth =  Mathf.FloorToInt(size.x / cellSize);
+            var cellHeight = Mathf.FloorToInt(size.y / cellSize);
+            
+            var chunkSize = new Vector2(
+                x:cellSize * cellWidth,
+                y:cellSize * cellHeight);
+            
+            var gridProperties = new GridProperties
+            {
+                CellHeight = cellHeight,
+                CellSize = cellSize,
+                CellWidth = cellWidth,
+                Size = chunkSize,
+                Tries = tries,
+            };
+        
+            var r = new RadiusConst(radius + pointMargin);
+            
+            return new World(radius:r, worldPositionOffset: worldPositionOffset, gridProperties: gridProperties,
+                gridFactory: CreateSingleRadGrid)
+            {
+                Tries = tries,
+                Margin = pointMargin
+            };
+        }
+        public static World CreateWorld(Vector2Int size,
             float minRadius,
             float maxRadius,
             int tries = 20,
@@ -109,32 +143,91 @@ namespace dd_andromeda_poisson_disk_sampling
             };
 
             var radius = new RadiusMinMax(minRadius + pointMargin, maxRadius + pointMargin, radiusChangePercents);
-            return new WorldMultiRad(radius:radius, worldPositionOffset: worldPositionOffset, gridProperties: gridProperties)
+            return new World(radius:radius, worldPositionOffset: worldPositionOffset, gridProperties: gridProperties,
+                gridFactory: CreateMultiRadGrid)
             {
                 Tries = tries,
                 Margin = pointMargin
             };
         }
         
-        
-        internal static GridWorld CreateWorldGrid(WorldMultiRad world, Vector2Int chunkPosition)
+        public static World CreateWorld(Vector2Int size,
+            float[] radiuses,
+            int tries = 20,
+            float pointMargin = 0,
+            AnimationCurve radiusChangeCurve = null,
+            Vector3 worldPositionOffset = default)
         {
-            // var chunkSize = new Vector2(
-            //     x:world.GridProperties.CellSize * world.GridProperties.CellWidth,
-            //     y:world.GridProperties.CellSize * world.GridProperties.CellHeight);
+            var cellSize = (radiuses.Min() + pointMargin) / Sqrt2;
+            var cellWidth =  Mathf.FloorToInt(size.x / cellSize);
+            var cellHeight = Mathf.FloorToInt(size.y / cellSize);
             
-            float cx = (chunkPosition.x * world.GridProperties.Size.x) + world.WorldPositionOffset.x;
-            float cy = (chunkPosition.y * world.GridProperties.Size.y) + world.WorldPositionOffset.y;
+            float[] radiusChangePercents = null;
+            
+            if (radiusChangeCurve != null)
+            {
+                radiusChangePercents = new float[tries];
+                for (var i = 0; i < tries; i++)
+                {
+                    radiusChangePercents[i] = radiusChangeCurve.Evaluate((float) i / tries);
+                }
+            }
 
-            var core = new GridCore(world.GridProperties)
-            {
-                WorldPositionOffset = new Vector3(cx, cy)
-            };
+            var chunkSize = new Vector2(
+                x:cellSize * cellWidth,
+                y:cellSize * cellHeight);
             
-            return new GridWorldMultiRad(gridCore: core, world: world, 
-                chunkPosition: chunkPosition)
+            var gridProperties = new GridProperties
             {
+                CellHeight = cellHeight,
+                CellSize = cellSize,
+                CellWidth = cellWidth,
+                Size = chunkSize,
+                Tries = tries,
+            };
+
+            if (pointMargin != 0)
+            {
+                for (var i = 0; i < radiuses.Length; i++)
+                {
+                    radiuses[i] += pointMargin;
+                }
+            }
+            
+            var radius = new RadiusPredefined(radiuses, radiusChangePercents);
+            return new World(radius:radius, worldPositionOffset: worldPositionOffset, gridProperties: gridProperties,
+                gridFactory: CreateMultiRadGrid)
+            {
+                Tries = tries,
+                Margin = pointMargin
             };
         }
+        
+        private static GridWorld CreateMultiRadGrid(GridCore core, World world, Vector2Int chunkPosition)
+        {
+            return new GridWorldMultiRad(gridCore: core, world: world,
+                chunkPosition: chunkPosition);
+        }
+        
+        private static GridWorld CreateSingleRadGrid(GridCore core, World world, Vector2Int chunkPosition)
+        {
+            return new GridWorldSingleRad(gridCore: core, world: world,
+                chunkPosition: chunkPosition);
+        }
+        // internal static GridWorld CreateWorldGrid(World world, Vector2Int chunkPosition)
+        // {
+        //     float cx = (chunkPosition.x * world.GridProperties.Size.x) + world.WorldPositionOffset.x;
+        //     float cy = (chunkPosition.y * world.GridProperties.Size.y) + world.WorldPositionOffset.y;
+        //
+        //     var core = new GridCore(world.GridProperties)
+        //     {
+        //         WorldPositionOffset = new Vector3(cx, cy)
+        //     };
+        //     
+        //     return new GridWorldMultiRad(gridCore: core, world: world, 
+        //         chunkPosition: chunkPosition)
+        //     {
+        //     };
+        // }
     }
 }

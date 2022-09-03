@@ -7,7 +7,7 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
     public abstract class GridWorld : IFiller
     {
         public GridCore GridCore { get; }
-        public WorldMultiRad World { get; }
+        public World World { get; }
         public Vector2Int ChunkPosition { get; }
 
         public IRadius Radius => World.Radius;
@@ -17,7 +17,7 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
         private Stack<int> _emptyPointIndices;
         private Dictionary<int, PointWorld> _linkedPoints; 
 
-        protected GridWorld(GridCore gridCore,WorldMultiRad world, Vector2Int chunkPosition)
+        protected GridWorld(GridCore gridCore,World world, Vector2Int chunkPosition)
         {
             GridCore = gridCore;
             World = world;
@@ -108,8 +108,39 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
         {
             return TryCreateCandidate(spawnerPosition, Radius.GetRadius(currentTry, maxTries), currentTry, maxTries, out candidate);
         }
-        
-        public abstract bool TryCreateCandidate(Vector3 spawnerPosition, float spawnerRadius, int currentTry, int maxTries, out PointWorld candidate);
+
+        public bool TryCreateCandidate(Vector3 spawnerPosition, float spawnerRadius, int currentTry, int maxTries,
+            out PointWorld candidate)
+        {
+            var radius = World.Radius.GetRadius(currentTry, maxTries);
+            if (radius == 0)
+            {
+                candidate = null;
+                return false;
+            }
+
+            var position = Helper
+                .GetCandidateRandomWorldPosition(
+                    spawnWorldPosition: spawnerPosition,
+                    spawnerRadius: spawnerRadius,
+                    candidateRadius: radius);
+            
+            if(!GridCore.IsPointInAABB(position))
+            {
+                candidate = null;
+                return false;
+            }
+            
+            candidate = new PointWorld
+            {
+                Radius = radius,
+                WorldPosition = position,
+                Cell = GridCore.PositionToCellClamped(position)
+
+            };
+            
+            return true;
+        }
 
         public virtual bool TryAddPoint(PointWorld point)
         {

@@ -5,20 +5,23 @@ using UnityEngine;
 
 namespace dd_andromeda_poisson_disk_sampling.Propereties
 {
-    public class WorldMultiRad
+    public class World
     {
         public IRadius Radius { get; }
         public Vector3 WorldPositionOffset { get; }
-        public IGridProperties GridProperties { get; }
+        public GridProperties GridProperties { get; }
         public IEnumerable<GridWorld> Grids => _grids.Values;
         public int Tries { get; set; }
         public float Margin { get; set; }
 
         private readonly Dictionary<Vector2Int, GridWorld> _grids;
         private readonly Dictionary<Vector2Int, Dictionary<Vector2Int, PointWorld>> _cachedPoints;
-
-        public WorldMultiRad(IRadius radius, Vector3 worldPositionOffset, IGridProperties gridProperties)
+        private readonly Func<GridCore, World, Vector2Int, GridWorld> _gridFactory;
+        
+        public World(IRadius radius, Vector3 worldPositionOffset, GridProperties gridProperties,
+            Func<GridCore, World, Vector2Int, GridWorld> gridFactory)
         {
+            _gridFactory = gridFactory;
             Radius = radius;
             WorldPositionOffset = worldPositionOffset;
             GridProperties = gridProperties;
@@ -31,7 +34,14 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
             if(_grids.ContainsKey(position))
                 throw new Exception("Grid already exists");
             
-            var grid = Factory.CreateWorldGrid(world: this, chunkPosition: position);
+            var core = new GridCore(GridProperties)
+            {
+                WorldPositionOffset = GridWorldOffset(position)
+            };
+
+            var grid = _gridFactory(core, this, position);
+            
+            // var grid = Factory.CreateWorldGrid(world: this, chunkPosition: position);
             _grids[position] = grid;
 
             if (_cachedPoints.TryGetValue(position, out var pointWorlds))
@@ -85,6 +95,25 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
 
         public WorldCoordinate GetRealWorldCoordinate(int gridX, int gridY, int cellX, int cellY)
         {
+            void GetGridCoordinate(int rawCoord, int gridLenght, int chunkPosition, out int chunkCoord, out int cellCoord)
+            {
+                if (rawCoord >= 0 && rawCoord <= gridLenght)
+                {
+                    chunkCoord = chunkPosition;
+                    cellCoord = rawCoord;
+                    return;
+                }
+            
+                var shiftNegative = rawCoord < 0;
+                var shiftCount = shiftNegative ? Mathf.Abs(rawCoord) : Mathf.Abs(rawCoord - gridLenght);
+                var shiftChunks = (shiftCount / (gridLenght)) + 1;
+
+                chunkCoord = shiftNegative ? chunkPosition - shiftChunks : chunkPosition + shiftChunks;
+            
+                var xDelta = Mathf.Abs(rawCoord) - ((shiftChunks - 1) * (gridLenght));
+                cellCoord = shiftNegative ? gridLenght - xDelta + 1  : xDelta - gridLenght - 1;
+            }
+            
             GetGridCoordinate(cellX, GridProperties.CellWidth - 1, gridX, 
                 out var targetGridX, out var targetCellX);
             GetGridCoordinate(cellY, GridProperties.CellHeight - 1, gridY,
@@ -177,30 +206,18 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
             
             return grid;
         }
+
+        private Vector3 GridWorldOffset(Vector2Int gridPosition)
+        {
+            float cx = (gridPosition.x * GridProperties.Size.x) + WorldPositionOffset.x;
+            float cy = (gridPosition.y * GridProperties.Size.y) + WorldPositionOffset.y;
+            return new Vector3(cx, cy);
+        }
         
         private Vector2Int WorldPositionToGridPosition(Vector3 worldPosition)
         {
             return new Vector2Int(Mathf.FloorToInt((worldPosition.x - WorldPositionOffset.x) / GridProperties.Size.x),
                 Mathf.FloorToInt((worldPosition.y - WorldPositionOffset.y) / GridProperties.Size.y));
-        }
-        
-        private void GetGridCoordinate(int rawCoord, int gridLenght, int chunkPosition, out int chunkCoord, out int cellCoord)
-        {
-            if (rawCoord >= 0 && rawCoord <= gridLenght)
-            {
-                chunkCoord = chunkPosition;
-                cellCoord = rawCoord;
-                return;
-            }
-            
-            var shiftNegative = rawCoord < 0;
-            var shiftCount = shiftNegative ? Mathf.Abs(rawCoord) : Mathf.Abs(rawCoord - gridLenght);
-            var shiftChunks = (shiftCount / (gridLenght)) + 1;
-
-            chunkCoord = shiftNegative ? chunkPosition - shiftChunks : chunkPosition + shiftChunks;
-            
-            var xDelta = Mathf.Abs(rawCoord) - ((shiftChunks - 1) * (gridLenght));
-            cellCoord = shiftNegative ? gridLenght - xDelta + 1  : xDelta - gridLenght - 1;
         }
     }
 }

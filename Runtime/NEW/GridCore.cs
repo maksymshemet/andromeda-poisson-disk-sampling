@@ -5,13 +5,13 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
 {
     public class GridCore
     {
-        public IGridProperties Properties { get; }
+        public GridProperties Properties { get; }
         public Vector3 WorldPositionOffset { get; set;}
         public Vector3 Center => new Vector3(Properties.Size.x / 2, Properties.Size.y / 2) + WorldPositionOffset;
 
         private readonly int[] _cells;
 
-        public GridCore(IGridProperties properties)
+        public GridCore(GridProperties properties)
         {
             Properties = properties;
 

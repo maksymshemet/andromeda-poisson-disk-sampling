@@ -14,6 +14,7 @@ namespace dd_andromeda_poisson_disk_sampling.Demo
         public float PointMargin = 0;
         public float MinRadius = 1;
         public float MaxRadius = 2;
+        public float[] Radiuses;
         public AnimationCurve RadiusCurve;
 
         [Header("Random seed")] 
@@ -32,7 +33,7 @@ namespace dd_andromeda_poisson_disk_sampling.Demo
         [Header("Trigger")] public bool Trigger;
 
         // private List<PointWorld> _points;
-        private WorldMultiRad _world;
+        private World _world;
 
         private static bool _cachedTrigger;
 
@@ -41,8 +42,20 @@ namespace dd_andromeda_poisson_disk_sampling.Demo
         {
             if (_cachedTrigger != Trigger)
             {
-                _world = Factory.CreateWorldNEW(RegionSize, MinRadius, MaxRadius, Tries, PointMargin, RadiusCurve);
-                
+                if (Radiuses != null && Radiuses.Length > 0)
+                {
+                    _world = Factory.CreateWorld(RegionSize, Radiuses, Tries, PointMargin, RadiusCurve);
+
+                }
+                else if (MinRadius == MaxRadius)
+                {
+                    _world = Factory.CreateWorld(RegionSize, MinRadius, Tries, PointMargin, RadiusCurve);
+                }
+                else
+                {
+                    _world = Factory.CreateWorld(RegionSize, MinRadius, MaxRadius, Tries, PointMargin, RadiusCurve);
+                }
+
                 // 595, 649, 376
                 var ts = DateTime.Now.Millisecond;
                 Debug.LogWarning($"seed: {ts}");

@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace dd_andromeda_poisson_disk_sampling.Propereties
 {
-    public class GridProperties : IGridProperties
+    public class GridProperties
     {
         public Vector2 Size { get; set; }
         public float CellSize { get; set; }
