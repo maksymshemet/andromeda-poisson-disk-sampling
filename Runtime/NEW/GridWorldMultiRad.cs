@@ -10,12 +10,13 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
         {
         }
 
-        public override PointWorld TryCreateCandidate(Vector3 spawnerPosition, float spawnerRadius, int currentTry, int maxTries)
+        public override bool TryCreateCandidate(Vector3 spawnerPosition, float spawnerRadius, int currentTry, int maxTries, out PointWorld candidate)
         {
             var radius = World.Radius.GetRadius(currentTry, maxTries);
             if (radius == 0)
             {
-                return null;
+                candidate = null;
+                return false;
             }
 
             var position = Helper
@@ -26,16 +27,18 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
             
             if(!GridCore.IsPointInAABB(position))
             {
-                return null;
+                candidate = null;
+                return false;
             }
             
-            return new PointWorld
+            candidate = new PointWorld
             {
                 Radius = radius,
                 WorldPosition = position,
                 Cell = GridCore.PositionToCellClamped(position)
 
             };
+            return true;
         }
 
         protected override int GetSearchRange(float pointRadius)

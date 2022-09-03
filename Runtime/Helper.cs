@@ -19,7 +19,7 @@ namespace dd_andromeda_poisson_disk_sampling
         
         bool TryAddPoint(PointWorld candidate);
 
-        PointWorld TryCreateCandidate(Vector3 spawnerPosition, float spawnerRadius, int currentTry, int maxTries);
+        bool TryCreateCandidate(Vector3 spawnerPosition, float spawnerRadius, int currentTry, int maxTries, out PointWorld candidate);
 
         IReadOnlyList<PointWorld> GetPoints();
     }
@@ -110,8 +110,7 @@ namespace dd_andromeda_poisson_disk_sampling
         {
             for (var i = 0; i < tries; i++)
             {
-                var candidate = filler.TryCreateCandidate(spawnPosition, radius, i, tries);
-                if (candidate != null)
+                if (filler.TryCreateCandidate(spawnPosition, radius, i, tries, out var candidate))
                 {
                     if(filler.TryAddPoint(candidate))
                         return candidate;

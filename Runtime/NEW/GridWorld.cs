@@ -94,22 +94,22 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
             return true;
         }
         
-        public PointWorld TryCreateCandidate(Vector3 spawnerPosition)
+        public bool TryCreateCandidate(Vector3 spawnerPosition, out PointWorld candidate)
         { 
-            return TryCreateCandidate(spawnerPosition, Radius.GetRadius(0, Tries), 0, Tries);
+            return TryCreateCandidate(spawnerPosition, Radius.GetRadius(0, Tries), 0, Tries, out candidate);
         }
         
-        public PointWorld TryCreateCandidate(Vector3 spawnerPosition, float spawnerRadius)
+        public bool TryCreateCandidate(Vector3 spawnerPosition, float spawnerRadius, out PointWorld candidate)
         {
-            return TryCreateCandidate(spawnerPosition, spawnerRadius, 0, Tries);
+            return TryCreateCandidate(spawnerPosition, spawnerRadius, 0, Tries, out candidate);
         }
         
-        public PointWorld TryCreateCandidate(Vector3 spawnerPosition, int currentTry, int maxTries)
+        public bool TryCreateCandidate(Vector3 spawnerPosition, int currentTry, int maxTries, out PointWorld candidate)
         {
-            return TryCreateCandidate(spawnerPosition, Radius.GetRadius(currentTry, maxTries), currentTry, maxTries);
+            return TryCreateCandidate(spawnerPosition, Radius.GetRadius(currentTry, maxTries), currentTry, maxTries, out candidate);
         }
         
-        public abstract PointWorld TryCreateCandidate(Vector3 spawnerPosition, float spawnerRadius, int currentTry, int maxTries);
+        public abstract bool TryCreateCandidate(Vector3 spawnerPosition, float spawnerRadius, int currentTry, int maxTries, out PointWorld candidate);
 
         public virtual bool TryAddPoint(PointWorld point)
         {
