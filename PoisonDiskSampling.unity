@@ -680,6 +680,14 @@ MonoBehaviour:
   PointMargin: 0
   MinRadius: 0.4
   MaxRadius: 3
+  Radiuses:
+  - 0.5
+  - 1
+  - 1.5
+  - 2
+  - 2.5
+  - 3
+  - 0.2
   RadiusCurve:
     serializedVersion: 2
     m_Curve:
@@ -714,7 +722,7 @@ MonoBehaviour:
     m_PostInfinity: 2
     m_RotationOrder: 4
   Seed: 982
-  UseSead: 1
+  UseSead: 0
   RegionSize: {x: 10, y: 10}
   Tries: 20
   GridColor: {r: 0.9843137, g: 1, b: 0, a: 0.09803922}

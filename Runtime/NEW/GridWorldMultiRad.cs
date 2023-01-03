@@ -67,6 +67,8 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
                         }
                     }
                 }
+
+                return true;
             }
 
             return false;

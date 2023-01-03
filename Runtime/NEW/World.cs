@@ -173,7 +173,16 @@ namespace dd_andromeda_poisson_disk_sampling.Propereties
                     cachedPoints.Remove(new Vector2Int(worldCoordinate.CellX, worldCoordinate.CellY));
                 }
             }
-        } 
+        }
+
+        public bool RemovePoint(PointWorld point)
+        {
+            if (_grids.TryGetValue(point.ChunkPosition, out var grid))
+            {
+                return grid.RemovePoint(point);
+            }
+            return false;
+        }
         
         private GridWorld TryCreateCandidate(Vector3 spawnerPosition, float spawnerRadius, float radius,
             out PointWorld candidate)
