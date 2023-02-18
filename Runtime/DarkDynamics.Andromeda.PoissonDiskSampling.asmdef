@@ -1,3 +1,14 @@
 {
-  "name": "DarkDynamics.Andromeda.PoissonDiskSampling"
+    "name": "DarkDynamics.Andromeda.PoissonDiskSampling",
+    "rootNamespace": "DarkDynamics.Andromeda.PoissonDiskSampling",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }
