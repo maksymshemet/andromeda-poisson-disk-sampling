@@ -19,7 +19,6 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Worlds
         {
             Vector3 fakeWorldPosition = ChunkProperties.WorldCenter;
             
-            
             List<int> spawnPoints;
             if (Points.Count == 0)
             {
@@ -28,7 +27,6 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Worlds
                     WorldPosition = fakeWorldPosition,
                     Radius = World.UserProperties.RadiusProvider.GetRandomRadius(
                         Random.Range(0, UserProperties.Tries), UserProperties.Tries),
-                    // Cell = _world2.WorldPositionToWorldCoordinates(fakeWorldPosition).CellPosition
                 };
 
                 int pointIndex = TrySpawnPointFrom(fakePoint, out PointWorld _);
@@ -92,9 +90,9 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Worlds
             Vector2Int cellMin = WorldPositionToCell(point.WorldPosition, WorldToCellPositionMethod.Floor);
             Vector2Int cellMax = WorldPositionToCell(point.WorldPosition, WorldToCellPositionMethod.Ceil);
         
-            point.CellMinWorld = World.RelativeToWorldCoordinates(cellMin);
-            point.CellMaxWorld = World.RelativeToWorldCoordinates(cellMax);
-        
+            point.CellMinWorld = new WorldCoordinates(World, cellMin);
+            point.CellMaxWorld = new WorldCoordinates(World, cellMax);
+            
             var searchFrom = new Vector2Int(x: cellMin.x - deltaRadius, y: cellMin.y - deltaRadius);
             var searchTo = new Vector2Int(x: cellMax.x + deltaRadius, y: cellMax.y + deltaRadius);
             
@@ -114,9 +112,7 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Worlds
                     float dstToCenter = powX + powY;
                     if (dstToCenter < sqrtRad)
                     {
-                        WorldCoordinates wc = World
-                            .RelativeToWorldCoordinates(new Vector2Int(x, y));
-                        
+                        var wc = new WorldCoordinates(World, new Vector2Int(x, y));
                         if (ChunkCoordinate == wc.ChunkPosition)
                         {
                             Cells[FlatCoordinates(wc.CellPosition)] = PointsInternal.Count;

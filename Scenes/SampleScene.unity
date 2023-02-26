@@ -255,8 +255,6 @@ MonoBehaviour:
   - {x: 1, y: 0}
   - {x: 1, y: 1}
   - {x: 0, y: 1}
-  ChunkWorldCoordinates: {x: 0, y: 0}
-  WorldCoordinates: []
   Trigger: 1
   WorldPosition: {x: 0, y: 0, z: 0}
   TriggerWorldPosition: 0
@@ -480,6 +478,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Pref: {fileID: 922992541460553317, guid: 8d44bb31a0b184d19a5cf39cfb240a50, type: 3}
   ChunkCellsCount: 50
+  Size: {x: 20, y: 20}
   Tries: 50
   MinRadius: 1
   MaxRadius: 4
@@ -521,8 +520,6 @@ MonoBehaviour:
   - {x: 1, y: 0}
   - {x: 1, y: 1}
   - {x: 0, y: 1}
-  ChunkWorldCoordinates: {x: 0, y: 0}
-  WorldCoordinates: []
   Trigger: 1
   WorldPosition: {x: 0, y: 0, z: 0}
   TriggerWorldPosition: 0

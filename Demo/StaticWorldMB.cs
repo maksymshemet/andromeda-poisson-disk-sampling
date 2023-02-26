@@ -18,16 +18,11 @@ namespace andromeda_poisson_disk_sampling.Demo2
         public int ChunkCellsCount;
         public float Radius;
         public Vector2Int[] Chunks;
-        public Vector2Int ChunkWorldCoordinates;
-        public Vector2Int[] WorldCoordinates;
 
         public bool Trigger;
         private bool _trigger;
         
         private World _world;
-
-        private List<WorldCoordinates> _worldCoordinates;
-
 
         [Header("WorldPosition To Cell")] 
         public Vector3 WorldPosition;
@@ -62,11 +57,9 @@ namespace andromeda_poisson_disk_sampling.Demo2
             _spheres.Clear();
             
             _trigger = Trigger;
-            _worldCoordinates = new List<WorldCoordinates>();
-
             _world = new WorldBuilderConstRadius()
                 .WithPointProperties(pp => pp.WithRadius(Radius))
-                .WithChunkSize(ChunkCellsCount)
+                .WithChunkSize(s => s.WithCellsCount(ChunkCellsCount))
                 .Build();
             // _world = new World2Builder()
             //     .WithRadius(Radius)
@@ -90,19 +83,9 @@ namespace andromeda_poisson_disk_sampling.Demo2
             sw.Stop();
             int pointCount = _world.Grids.Values.SelectMany(x => x.Points).Distinct().Count();
             Debug.LogWarning($"Benchmark: {sw.Elapsed.TotalSeconds} s ({pointCount} points)");
-            
-            foreach (Vector2Int coordinate in WorldCoordinates)
-            {
-                WorldCoordinates a = _world.RelativeToWorldCoordinates(coordinate, ChunkWorldCoordinates);
-                _worldCoordinates.Add(a);
-                Debug.Log(a);
-            }
-
-          
-            // _world.Grids[Chunks[0]].Fill();
         }
 
-        private void Grid2OnOnPointCreated(WorldGrid arg1, PointGrid arg2)
+        private void Grid2OnOnPointCreated(World _, WorldGrid arg1, PointGrid arg2)
         {
             WorldPointSphere mb = Instantiate(Pref, transform, true);
             mb.Init(_world, arg2);

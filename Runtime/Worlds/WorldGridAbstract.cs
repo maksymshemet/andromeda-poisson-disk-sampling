@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids;
 using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Models;
 using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Properties;
@@ -5,7 +6,8 @@ using UnityEngine;
 
 namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Worlds
 {
-    public abstract class WorldGridAbstract<TWorld, TGridUserProperty, TSelf> : GridAbstract<PointWorld, TGridUserProperty, TSelf>
+    public abstract class WorldGridAbstract<TWorld, TGridUserProperty, TSelf> 
+        : GridAbstract<PointWorld, TGridUserProperty, TSelf>
         where TGridUserProperty : PointProperties
         where TWorld : WorldAbstract<TGridUserProperty, TSelf, TWorld>
         where TSelf : WorldGridAbstract <TWorld, TGridUserProperty, TSelf>
@@ -76,40 +78,15 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Worlds
         private bool IsCandidateValid(Candidate candidate, WorldCoordinates candidateCellMax, WorldCoordinates candidateCellMin)
         {
             int radius = GetSearchSize(candidate.Radius);
-            WorldCoordinates from = World
-                .NewWorldCoordinatesWithOffset(candidateCellMin, -radius, -radius);
-            WorldCoordinates to = World
-                .NewWorldCoordinatesWithOffset(candidateCellMax, radius, radius);
-
-            for (int chunkY = from.ChunkPosition.y; chunkY <= to.ChunkPosition.y; chunkY++)
+            HashSet<PointWorld> points = World.GetPointsAround(candidateCellMin, candidateCellMax, radius);
+            foreach (PointWorld point in points)
             {
-                for (int chunkX = from.ChunkPosition.x; chunkX <= to.ChunkPosition.x; chunkX++)
+                if (candidate.IsIntersectWithPoint(point))
                 {
-                    if (!World.Grids.TryGetValue(new Vector2Int(chunkX, chunkY), out TSelf grid)) continue;
-                    
-                    int cellYStart = chunkY == from.ChunkPosition.y ? from.CellPosition.y : 0;
-                    int cellXStart = chunkX == from.ChunkPosition.x ? from.CellPosition.x : 0;
-                    
-                    int cellYEnd = chunkY == to.ChunkPosition.y ? to.CellPosition.y + 1 : GridProperties.CellLenghtY;
-                    int cellXEnd = chunkX == to.ChunkPosition.x ? to.CellPosition.x + 1 : GridProperties.CellLenghtX;
-                    
-                    for (int cellY = cellYStart; cellY < cellYEnd; cellY++)
-                    {
-                        for (int cellX = cellXStart; cellX < cellXEnd; cellX++)
-                        {
-                            int pointIndex = grid.GetCellValue(cellX, cellY);
-                            if (pointIndex == 0) continue;
-                            
-                            PointGrid existingPoint = grid.GetPointByIndex(pointIndex);
-                            if (candidate.IsIntersectWithPoint(existingPoint))
-                            {
-                                return false;
-                            }
-                        }
-                    }
+                    return false;
                 }
             }
-            
+
             return true;
         }
 

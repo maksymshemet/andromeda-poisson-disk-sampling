@@ -6,26 +6,34 @@ using UnityEngine;
 
 namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Worlds
 {
-    public abstract class WorldAbstract<TWorldUserProperties, TWorldGrid, TSelf>
+    public abstract class WorldAbstract
+    {
+        public GridProperties GridProperties { get; }
+
+        protected WorldAbstract(GridProperties gridProperties)
+        {
+            GridProperties = gridProperties;
+        }
+    }
+    
+    public abstract class WorldAbstract<TWorldUserProperties, TWorldGrid, TSelf> : WorldAbstract
         where TWorldUserProperties : PointProperties
         where TSelf : WorldAbstract<TWorldUserProperties, TWorldGrid, TSelf>
         where TWorldGrid : WorldGridAbstract<TSelf, TWorldUserProperties, TWorldGrid>
     {
-        public event Action<TWorldGrid, PointWorld> OnPointCreated;
+        public event Action<TSelf, TWorldGrid, PointWorld> OnPointCreated;
         
-        public GridProperties GridProperties { get; }
         public TWorldUserProperties UserProperties { get; }
         public IReadOnlyDictionary<Vector2Int, TWorldGrid> Grids => _grids;
         
         private readonly Dictionary<Vector2Int, TWorldGrid> _grids;
         private readonly Dictionary<Vector2Int, Dictionary<PointWorld, List<Vector2Int>>> _pointsForFutureGrids;
         
-        public WorldAbstract(GridProperties gridProperties, TWorldUserProperties userProperties)
+        public WorldAbstract(GridProperties gridProperties, TWorldUserProperties userProperties) : base(gridProperties)
         {
             _grids = new Dictionary<Vector2Int, TWorldGrid>();
             _pointsForFutureGrids = new Dictionary<Vector2Int, Dictionary<PointWorld, List<Vector2Int>>>();
             
-            GridProperties = gridProperties;
             UserProperties = userProperties;
         }
 
@@ -51,7 +59,7 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Worlds
             };
             
             // var grid = new WorldGrid2(this, chunkPosition, chunkProperties);
-            var grid = CreateGrid(chunkPosition, chunkProperties);
+            TWorldGrid grid = CreateGrid(chunkPosition, chunkProperties);
             
             _grids[chunkPosition] = grid;
 
@@ -69,9 +77,9 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Worlds
                 _pointsForFutureGrids.Remove(chunkPosition);
             }
             
-            grid.OnPointCreated += (a, b) =>
+            grid.OnPointCreated += (g, p) =>
             {
-                OnPointCreated?.Invoke(a, b);
+                OnPointCreated?.Invoke((TSelf) this, g, p);
             };
             return grid;
         }
@@ -89,9 +97,51 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Worlds
             WorldToCellPositionMethod method = WorldToCellPositionMethod.Round)
         {
             Vector2Int cellPosition = GetCellPositionFrom(worldPosition, method);
-            return RelativeToWorldCoordinates(cellPosition);
+            return new WorldCoordinates(this, cellPosition);
+        }
+
+        public HashSet<PointWorld> GetPointsAround(in PointWorld pointWorld, int region)
+        {
+            return GetPointsAround(pointWorld.CellMinWorld, pointWorld.CellMaxWorld, region);
         }
         
+        public HashSet<PointWorld> GetPointsAround(in WorldCoordinates cellMin, in WorldCoordinates cellMax, int region)
+        {
+            WorldCoordinates from = cellMin.Offset(this, -region, -region);
+            WorldCoordinates to = cellMax.Offset(this, region, region);
+
+            var result = new HashSet<PointWorld>();
+
+            for (int chunkY = from.ChunkPosition.y; chunkY <= to.ChunkPosition.y; chunkY++)
+            {
+                for (int chunkX = from.ChunkPosition.x; chunkX <= to.ChunkPosition.x; chunkX++)
+                {
+                    int cellStartY = chunkY == from.ChunkPosition.y ? from.CellPosition.y : 0;
+                    int cellEndY = chunkY == to.ChunkPosition.y ? to.CellPosition.y : GridProperties.CellLenghtY - 1;
+
+                    for (; cellStartY <= cellEndY; cellStartY++)
+                    {
+                        int cellStartX = chunkX == from.ChunkPosition.x ? from.CellPosition.x : 0;
+                        int cellEndX = chunkX == to.ChunkPosition.x ? to.CellPosition.x : GridProperties.CellLenghtX - 1;
+
+                        for (; cellStartX <= cellEndX; cellStartX++)
+                        {
+                            if (_grids.TryGetValue(new Vector2Int(chunkX, chunkY), out TWorldGrid grid))
+                            {
+                                PointWorld point = grid.GetPoint(cellStartX, cellStartY);
+                                if (point != null)
+                                {
+                                    result.Add(point);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return result;
+        }
+
         private Vector2Int GetCellPositionFrom(Vector3 worldPosition,
             WorldToCellPositionMethod method = WorldToCellPositionMethod.Round)
         {
@@ -109,120 +159,6 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Worlds
                 
                 _ => throw new NotImplementedException($"method={method.ToString()} not implemented")
             };
-        }
-
-
-        public WorldCoordinates NewWorldCoordinatesWithOffset(WorldCoordinates original,
-            int cellOffsetX, int cellOffsetY)
-        {
-            
-            Tuple<int, int> Calc(int originalCell, int originalChunk, int length, int offset)
-            {
-                int cellX = originalCell + offset;
-                int chunkX = originalChunk;
-                if (cellX > 0)
-                {
-                    if (cellX >= length)
-                    {
-                        int chunkOffset = cellX / length;
-                        int cellOffset = cellX % length;
-
-                        chunkX += chunkOffset;
-                        cellX = cellOffset;
-                    }
-                }
-                else if(cellX < 0)
-                {
-                    int chunkOffset = cellX / length - 1;
-                    int cellOffset = cellX % length;
-
-                    chunkX += chunkOffset;
-                    cellX = length - Mathf.Abs(cellOffset) - 1;
-                }
-
-                return Tuple.Create(chunkX, cellX);
-            }
-
-            Tuple<int, int> tupleX = Calc(
-                originalCell: original.CellPosition.x,
-                originalChunk: original.ChunkPosition.x,
-                length: GridProperties.CellLenghtX,
-                offset: cellOffsetX);
-            
-            Tuple<int, int> tupleY = Calc(
-                originalCell: original.CellPosition.y,
-                originalChunk: original.ChunkPosition.y,
-                length: GridProperties.CellLenghtY,
-                offset: cellOffsetY);
-
-            return new WorldCoordinates
-            {
-                ChunkPosition = new Vector2Int(x: tupleX.Item1, y: tupleY.Item1),
-                CellPosition = new Vector2Int(x: tupleX.Item2, y: tupleY.Item2),
-            };
-        }
-        
-        public WorldCoordinates RelativeToWorldCoordinates(Vector2Int cellPosition)
-            => RelativeToWorldCoordinates(cellPosition, Vector2Int.zero);
-        
-        public WorldCoordinates RelativeToWorldCoordinates(Vector2Int cellPosition, Vector2Int chunkPosition)
-        {
-            Tuple<int, int> Calc(int originalCell, int originalChunk, int length, int offset)
-            {
-                int cellX = originalCell + offset;
-                int chunkX = originalChunk;
-                if (cellX > 0)
-                {
-                    if (cellX >= length)
-                    {
-                        int chunkOffset = cellX / length;
-                        int cellOffset = cellX % length;
-
-                        chunkX += chunkOffset;
-                        cellX = cellOffset;
-                    }
-                }
-                else if(cellX < 0)
-                {
-                    int chunkOffset = cellX / length - 1;
-                    int cellOffset = cellX % length;
-
-                    chunkX += chunkOffset;
-                    cellX = length - Mathf.Abs(cellOffset) - 1;
-                }
-
-                return Tuple.Create(chunkX, cellX);
-            }
-            
-            Tuple<int, int> tupleX = Calc(
-                originalCell: 0,
-                originalChunk: chunkPosition.x,
-                length: GridProperties.CellLenghtX,
-                offset: cellPosition.x);
-            
-            Tuple<int, int> tupleY = Calc(
-                originalCell: 0,
-                originalChunk: chunkPosition.y,
-                length: GridProperties.CellLenghtY,
-                offset: cellPosition.y);
-            
-            return new WorldCoordinates
-            {
-                ChunkPosition = new Vector2Int(x: tupleX.Item1, y: tupleY.Item1),
-                CellPosition = new Vector2Int(x: tupleX.Item2, y: tupleY.Item2),
-            };
-        }
-
-        public int GetCellValue(WorldCoordinates currentCoord)
-        {
-            if (_grids.TryGetValue(currentCoord.ChunkPosition, out TWorldGrid grid))
-            {
-                return grid.GetCellValue(
-                    currentCoord.CellPosition.x,
-                    currentCoord.CellPosition.y);
-            }
-
-            return 0;
         }
 
         internal void AddPointToGrid(WorldCoordinates wc, in PointWorld point)

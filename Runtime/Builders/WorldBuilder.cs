@@ -5,7 +5,29 @@ using UnityEngine;
 
 namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Builders
 {
-    
+    public class WorldSizeBuilder
+    {
+        public Func<float, Vector2Int> WithCellsCount(int chunkCellsCount)
+        {
+            return _ => new Vector2Int(chunkCellsCount, chunkCellsCount);
+        }
+        
+        public Func<float, Vector2Int> WithCellsCount(int chunkCellsCountX, int chunkCellsCountY)
+        {
+            return _ => new Vector2Int(chunkCellsCountX, chunkCellsCountY);
+        }
+        
+        public Func<float, Vector2Int> WithApproximateSize(Vector2 approximateSize)
+        {
+            return cellSize =>
+            {
+                int x = Mathf.RoundToInt(approximateSize.x / cellSize);
+                int y = Mathf.RoundToInt(approximateSize.y / cellSize);
+                return new Vector2Int(x, y);
+            };
+        }
+    }
+
     public abstract class WorldBuilder<TPointProperties, TPointPropertiesBuilder, TWorld, TSelf> : IBuilder<TWorld>
         where TPointProperties : PointProperties
         where TPointPropertiesBuilder : PointPropertiesBuilder<TPointProperties, TPointPropertiesBuilder>, new()
@@ -13,11 +35,12 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Builders
     {
         protected TPointPropertiesBuilder PointPropertiesBuilder;
         protected GridPropertiesBuilderForWorld GridPropertiesBuilder;
-        protected int ChunkCellsCount = 30;
+
+        private Func<float, Vector2Int> _sizeBuilderFunc;
         
-        public TSelf WithChunkSize(int cells)
+        public TSelf WithChunkSize(Func<WorldSizeBuilder, Func<float, Vector2Int>> cells)
         {
-            ChunkCellsCount = cells;
+            _sizeBuilderFunc = cells(new WorldSizeBuilder());
             return (TSelf) this;
         }
         
@@ -55,14 +78,15 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Builders
                 new GridProperties() : GridPropertiesBuilder.Build();
             
             float cellSize = (minRadius) / 2f;
+            Vector2Int cellLenght = _sizeBuilderFunc(cellSize);
             var size = new Vector2(
-                x: cellSize * ChunkCellsCount,
-                y: cellSize * ChunkCellsCount);
+                x: cellSize * cellLenght.x,
+                y: cellSize * cellLenght.y);
 
             gridProperties.Size = size;
             gridProperties.CellSize = cellSize;
-            gridProperties.CellLenghtX = ChunkCellsCount;
-            gridProperties.CellLenghtY = ChunkCellsCount;
+            gridProperties.CellLenghtX = cellLenght.x;
+            gridProperties.CellLenghtY = cellLenght.y;
             gridProperties.Center = new Vector3(size.x / 2f, size.y / 2f);
 
             return gridProperties;

@@ -16,21 +16,17 @@ namespace andromeda_poisson_disk_sampling.Demo2
         public WorldPointSphere Pref;
         
         public int ChunkCellsCount;
+        public Vector2 Size;
         public int Tries = 20;
         public float MinRadius;
         public float MaxRadius;
         public AnimationCurve RadiusPerTryCurve;
         public Vector2Int[] Chunks;
-        public Vector2Int ChunkWorldCoordinates;
-        public Vector2Int[] WorldCoordinates;
 
         public bool Trigger;
         private bool _trigger;
         
         private WorldMultiRad _world;
-
-        private List<WorldCoordinates> _worldCoordinates;
-
 
         [Header("WorldPosition To Cell")] 
         public Vector3 WorldPosition;
@@ -71,7 +67,6 @@ namespace andromeda_poisson_disk_sampling.Demo2
             _spheres.Clear();
             
             _trigger = Trigger;
-            _worldCoordinates = new List<WorldCoordinates>();
 
             _world = new WorldBuilderMultiRadius()
                 .WithPointProperties(pp => pp
@@ -79,7 +74,8 @@ namespace andromeda_poisson_disk_sampling.Demo2
                     .WithTries(Tries)
                     .WithRadiusPerTryCurve(RadiusPerTryCurve)
                 )
-                .WithChunkSize(ChunkCellsCount)
+                .WithChunkSize(b => b.WithApproximateSize(Size))
+                // .WithChunkSize(ChunkCellsCount)
                 .Build();
             // _world = new World2BuilderMultiRad()
             //     .WithRadius(MinRadius, MaxRadius)
@@ -107,18 +103,10 @@ namespace andromeda_poisson_disk_sampling.Demo2
             int pointCount = _world.Grids.Values.SelectMany(x => x.Points).Distinct().Count();
             Debug.LogWarning($"Benchmark: {sw.Elapsed.TotalSeconds} s ({pointCount} points)");
             
-            foreach (Vector2Int coordinate in WorldCoordinates)
-            {
-                WorldCoordinates a = _world.RelativeToWorldCoordinates(coordinate, ChunkWorldCoordinates);
-                _worldCoordinates.Add(a);
-                Debug.Log(a);
-            }
-
-          
             // _world.Grids[Chunks[0]].Fill();
         }
 
-        private void Grid2OnOnPointCreated(WorldGridMultiRad arg1, PointGrid arg2)
+        private void Grid2OnOnPointCreated(WorldMultiRad _, WorldGridMultiRad arg1, PointGrid arg2)
         {
             WorldPointSphere mb = Instantiate(Pref, transform, true);
             mb.Init(_world, arg2);
