@@ -1,18 +1,21 @@
 using System;
 using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids;
+using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Models;
 using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Properties;
 using UnityEngine;
 
 namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Builders
 {
-    public abstract class GridBuilder<TPointProperties, TPointPropertiesBuilder, TGrid, TSelf> : IBuilder<TGrid>
+    public abstract class GridBuilder<TPointProperties, TPointPropertiesBuilder, TGrid, TPoint, TSelf> : IBuilder<TGrid>
         where TPointProperties : PointProperties
         where TPointPropertiesBuilder : PointPropertiesBuilder<TPointProperties, TPointPropertiesBuilder>, new()
-        where TSelf : GridBuilder<TPointProperties, TPointPropertiesBuilder, TGrid, TSelf>
+        where TPoint : PointGrid, new()
+        where TSelf : GridBuilder<TPointProperties, TPointPropertiesBuilder, TGrid, TPoint, TSelf>
     {
         protected TPointPropertiesBuilder PointPropertiesBuilder;
         protected GridPropertiesBuilderForGrid GridPropertiesBuilder;
-        
+        protected ICustomPointBuilder<TPoint> CustomBuilder;
+
         public TSelf WithPointProperties(Action<TPointPropertiesBuilder> builder)
         {
             var b = new TPointPropertiesBuilder();
@@ -39,16 +42,31 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Builders
             return (TSelf) this;
         }
         
+        public TSelf WithCustomPointBuilder(ICustomPointBuilder<TPoint> customBuilder) 
+        {
+            CustomBuilder = customBuilder;
+            return (TSelf) this;
+        }
+
         public abstract TGrid Build();
+
+        protected GridProperties BuildGridProperties()
+        {
+            if (GridPropertiesBuilder == null)
+            {
+                return new GridProperties();
+            }
+            return GridPropertiesBuilder.Build();
+        }
     }
 
     public class GridBuilderConstRadius : 
-        GridBuilder<PointPropertiesConstRadius, PointPropertiesBuilderConsRadius, GridStatic, GridBuilderConstRadius>
+        GridBuilder<PointPropertiesConstRadius, PointPropertiesBuilderConsRadius, GridStatic, PointGrid, GridBuilderConstRadius>
     {
         public override GridStatic Build()
         {
             PointPropertiesConstRadius pointProperties = PointPropertiesBuilder.Build();
-            GridProperties gridProperties = GridPropertiesBuilder.Build();
+            GridProperties gridProperties = BuildGridProperties();
             
             float cellSize = (pointProperties.Radius + pointProperties.PointMargin) / 2f;
 
@@ -58,17 +76,20 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Builders
             gridProperties.Center = new Vector3(gridProperties.Size.x / 2f, gridProperties.Size.y / 2f) 
                                 + gridProperties.PositionOffset;
 
-            return new GridStatic(pointProperties, gridProperties);
+            return new GridStatic(pointProperties, gridProperties)
+            {
+                CustomBuilder = CustomBuilder
+            };
         }
     }
-    
+
     public class GridBuilderMultiRadius : 
-        GridBuilder<PointPropertiesMultiRadius, PointPropertiesBuilderMultiRadius, GridMultiRad, GridBuilderMultiRadius>
+        GridBuilder<PointPropertiesMultiRadius, PointPropertiesBuilderMultiRadius, GridMultiRad, PointGrid, GridBuilderMultiRadius>
     {
         public override GridMultiRad Build()
         {
             PointPropertiesMultiRadius pointProperties = PointPropertiesBuilder.Build();
-            GridProperties gridProperties = GridPropertiesBuilder.Build();
+            GridProperties gridProperties = BuildGridProperties();
             
             float cellSize = (pointProperties.RadiusProvider.MinRadius + pointProperties.PointMargin) / 2f;
 
@@ -78,7 +99,11 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Builders
             gridProperties.Center = new Vector3(gridProperties.Size.x / 2f, gridProperties.Size.y / 2f) 
                                     + gridProperties.PositionOffset;
 
-            return new GridMultiRad(pointProperties, gridProperties);
+            gridProperties.FillCellsInsidePoint = true;
+            return new GridMultiRad(pointProperties, gridProperties)
+            {
+                CustomBuilder = CustomBuilder
+            };
         }
     }
 }

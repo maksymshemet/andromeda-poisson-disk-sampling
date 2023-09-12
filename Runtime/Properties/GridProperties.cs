@@ -14,5 +14,6 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Properties
         public Vector3 Center;
         
         public PointsLocation PointsLocation = PointsLocation.CenterInsideGrid;
+        public bool FillCellsInsidePoint;
     }
 }
