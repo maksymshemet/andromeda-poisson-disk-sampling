@@ -11,7 +11,7 @@ using Random = UnityEngine.Random;
 
 namespace andromeda_poisson_disk_sampling.Demo2
 {
-    public class StaticGridMB : MonoBehaviour
+    public class StaticGridUnlimitedMB : MonoBehaviour
     {
         public PointSphere Pref;
         public float Radius;
@@ -22,17 +22,23 @@ namespace andromeda_poisson_disk_sampling.Demo2
         public Vector3 PositionOffset;
         public bool UseRandomSeed = true;
         public int RandomSeed;
-
+        
         public bool Trigger;
+        public int PointToCreate = 10_000;
+        
         private bool _trigger;
 
-        private GridStatic _grid;
+        private GridStaticUnlimited _grid;
         private List<PointSphere> _spheres;
+
+        private Queue<PointGrid> _queue;
+        private int _pointsToCreate;
         
         private void Awake()
         {
             _trigger = Trigger;
             _spheres = new List<PointSphere>();
+            _queue = new Queue<PointGrid>();
         }
 
         private void Do()
@@ -42,9 +48,10 @@ namespace andromeda_poisson_disk_sampling.Demo2
                 Destroy(sphere.gameObject);
             }
             
+            _pointsToCreate = PointToCreate;
             _spheres.Clear();
-            
-            _grid = new GridBuilderConstRadius()
+            _queue.Clear();
+            _grid = (GridStaticUnlimited) new GridUnlimitedBuilderConstRadius()
                 .WithPointProperties(x => x
                     .WithRadius(Radius)
                     .WithTries(Tries)
@@ -69,18 +76,54 @@ namespace andromeda_poisson_disk_sampling.Demo2
             var sw = new Stopwatch();
             sw.Start();
             
-            _grid.Fill();
+            Vector3 fakeWorldPosition = new Vector3(
+                x: _grid.GridProperties.Size.x / 2f, 
+                y: _grid.GridProperties.Size.y / 2f) + _grid.GridProperties.PositionOffset;
+
+            var fakePoint = new PointGrid(fakeWorldPosition, _grid.PointProperties.Radius, 0);
+
+            Color color = Random.ColorHSV();
+            _grid.TrySpawnPointFrom(fakePoint, out var cp0);
+            _queue.Enqueue(cp0);
+            
+            PointSphere mb1 = Instantiate(Pref, transform, true);
+            mb1.PointColor = color;
+            mb1.Init(cp0, _grid);
+            _spheres.Add(mb1);
+            
+            while (_queue.Count > 0)
+            {
+                PointGrid p = _queue.Dequeue();
+                while (_grid.TrySpawnPointFrom(p, out var cp) > -1)
+                {
+                    _pointsToCreate--;
+                    _queue.Enqueue(cp);
+                    
+                    if(_pointsToCreate <= 0)
+                        break;
+                    
+                    PointSphere mb = Instantiate(Pref, transform, true);
+                    mb.PointColor = color;
+                    mb.Init(cp, _grid);
+                    _spheres.Add(mb);
+                }
+                
+                color = Random.ColorHSV();
+                
+                if(_pointsToCreate <= 0)
+                    break;
+            }
             sw.Stop();
             Debug.LogWarning($"Benchmark: {sw.Elapsed.TotalMilliseconds} ms ({_grid.Points.Count()} points)");
             
             Camera.main.transform.position = _grid.GridProperties.Center;
         }
 
-        private void GridOnOnPointCreated(GridStatic grid, PointGrid point)
+        private void GridOnOnPointCreated(GridStaticUnlimited grid, PointGrid point)
         {
-            PointSphere mb = Instantiate(Pref, transform, true);
-            mb.Init(point, grid);
-            _spheres.Add(mb);
+            // PointSphere mb = Instantiate(Pref, transform, true);
+            // mb.Init(point, grid);
+            // _spheres.Add(mb);
         }
 
         private void Update()

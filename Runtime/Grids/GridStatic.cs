@@ -8,17 +8,17 @@ using Random = UnityEngine.Random;
 
 namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
 {
-    public class GridStatic : PointsHolder<PointGrid, PointPropertiesConstRadius, GridStatic>
+    public class GridStatic : PointsHolder<PointPropertiesConstRadius, GridStatic>
     {
         public GridStatic(PointPropertiesConstRadius userProperties, GridProperties gridProperties,
-            ICandidateValidator<PointGrid> candidateValidator) 
+            ICandidateValidator candidateValidator) 
             : base(new CellHolderArray(gridProperties), candidateValidator, gridProperties, userProperties)
         {
             
         }
         
         public GridStatic(PointPropertiesConstRadius userProperties, GridProperties gridProperties) 
-            : base(new CellHolderArray(gridProperties), new DefaultCandidateValidator<PointGrid>(), gridProperties, userProperties)
+            : base(new CellHolderArray(gridProperties), new DefaultCandidateValidator(), gridProperties, userProperties)
         {
             
         }
@@ -28,12 +28,9 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
             Vector3 fakeWorldPosition = new Vector3(
                                             x: GridProperties.Size.x / 2f, 
                                             y: GridProperties.Size.y / 2f) + GridProperties.PositionOffset;
-
-            var fakePoint = new PointGrid
-            {
-                WorldPosition = fakeWorldPosition,
-                Radius = CreateCandidateRadius(0, PointProperties.Tries),
-            };
+            
+            float fakePointRadius = CreateCandidateRadius(0, PointProperties.Tries);
+            var fakePoint = new PointGrid(worldPosition: fakeWorldPosition, radius: fakePointRadius, margin: 0);
             
             int pointIndex = TrySpawnPointFrom(fakePoint, out PointGrid _);
             if (pointIndex == -1)

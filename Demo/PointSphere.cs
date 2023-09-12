@@ -1,12 +1,16 @@
 using System;
 using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids;
 using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Models;
+using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Properties;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace andromeda_poisson_disk_sampling.Demo2
 {
     public class PointSphere : MonoBehaviour
     {
+        public Color PointColor { get; set; }
+        
         private PointGrid _point;
         private GridStatic _grid;
         
@@ -36,6 +40,9 @@ namespace andromeda_poisson_disk_sampling.Demo2
         public bool SearchRangeShow = false;
         public Color SearchRangeColor = Color.yellow;
         public float SearchRangeRadius = 0.16f;
+
+
+        private GridProperties _gridProperties;
         
         public void Init(PointGrid point, GridStatic grid)
         {
@@ -45,8 +52,23 @@ namespace andromeda_poisson_disk_sampling.Demo2
 
             _point = point;
             _grid = grid;
+            _gridProperties = grid.GridProperties;
         }
+        
+        public void Init(PointGrid point, GridStaticUnlimited grid)
+        {
+            name = $"[{point.WorldPosition}]";
+            transform.position = point.WorldPosition;
+            transform.localScale = new Vector3(point.Radius, point.Radius, point.Radius) * 2;
 
+            _point = point;
+            _gridProperties = grid.GridProperties;
+            
+            // int a= Random.Range(0,2);
+            var sphere =GetComponent<Renderer>();
+            sphere.material.SetColor("_Color", PointColor);
+        }
+        
         private void OnDrawGizmosSelected()
         {
             if (_point == null) return;
@@ -92,17 +114,17 @@ namespace andromeda_poisson_disk_sampling.Demo2
             
             const int searchSize = 3;
             int startX = Mathf.Max(0, _point.CellMin.x - searchSize);
-            int endX = Mathf.Min(_point.CellMax.x + searchSize, _grid.GridProperties.CellLenghtX - 1);
+            int endX = Mathf.Min(_point.CellMax.x + searchSize, _gridProperties.CellLenghtX - 1);
             int startY = Mathf.Max(0, _point.CellMin.y - searchSize);
-            int endY = Mathf.Min(_point.CellMax.y + searchSize, _grid.GridProperties.CellLenghtY - 1);
+            int endY = Mathf.Min(_point.CellMax.y + searchSize, _gridProperties.CellLenghtY - 1);
             
             for (int y = startY; y <= endY; y++)
             {
                 for (int x = startX; x <= endX; x++)
                 {
                     var pos = new Vector3(
-                        x: _grid.GridProperties.CellSize * x + _grid.GridProperties.PositionOffset.x,
-                        y: _grid.GridProperties.CellSize * y + _grid.GridProperties.PositionOffset.y);
+                        x: _gridProperties.CellSize * x + _gridProperties.PositionOffset.x,
+                        y: _gridProperties.CellSize * y + _gridProperties.PositionOffset.y);
                     Gizmos.DrawWireSphere(pos, SearchRangeRadius);
                 }
             }
@@ -115,23 +137,23 @@ namespace andromeda_poisson_disk_sampling.Demo2
             Gizmos.color = GridCellsColor;
             
             Gizmos.DrawSphere(new Vector3(
-                _grid.GridProperties.CellSize * _point.CellMin.x,
-                _grid.GridProperties.CellSize * _point.CellMin.y
+                _gridProperties.CellSize * _point.CellMin.x,
+                _gridProperties.CellSize * _point.CellMin.y
             ), GridCellsRadius);
             
             Gizmos.DrawSphere(new Vector3(
-                _grid.GridProperties.CellSize * _point.CellMax.x,
-                _grid.GridProperties.CellSize * _point.CellMin.y
+                _gridProperties.CellSize * _point.CellMax.x,
+                _gridProperties.CellSize * _point.CellMin.y
             ), GridCellsRadius);
             
             Gizmos.DrawSphere(new Vector3(
-                _grid.GridProperties.CellSize * _point.CellMin.x,
-                _grid.GridProperties.CellSize * _point.CellMax.y
+                _gridProperties.CellSize * _point.CellMin.x,
+                _gridProperties.CellSize * _point.CellMax.y
             ), GridCellsRadius);
             
             Gizmos.DrawSphere(new Vector3(
-                _grid.GridProperties.CellSize * _point.CellMax.x,
-                _grid.GridProperties.CellSize * _point.CellMax.y
+                _gridProperties.CellSize * _point.CellMax.x,
+                _gridProperties.CellSize * _point.CellMax.y
             ), GridCellsRadius);
         }
 

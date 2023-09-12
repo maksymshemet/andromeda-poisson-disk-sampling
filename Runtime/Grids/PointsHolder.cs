@@ -7,14 +7,14 @@ using UnityEngine;
 
 namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
 {
-    public interface ICandidateValidator<TPoint> where TPoint : PointGrid, new()
+    public interface ICandidateValidator
     {
-        public bool IsValid(IGrid<TPoint> grid, Candidate candidate, int searchSize);
+        public bool IsValid(IGrid grid, Candidate candidate, int searchSize);
     }
 
-    public class DefaultCandidateValidator<TPoint> : ICandidateValidator<TPoint> where TPoint : PointGrid, new()
+    public class DefaultCandidateValidator : ICandidateValidator
     {
-        public virtual bool IsValid(IGrid<TPoint> grid, Candidate candidate, int searchSize)
+        public virtual bool IsValid(IGrid grid, Candidate candidate, int searchSize)
         {
             int startX = Mathf.Max(grid.Cells.MinBound.x, candidate.CellMin.x - searchSize);
             int endX = Mathf.Min(candidate.CellMax.x + searchSize, grid.Cells.MaxBound.x - 1);
@@ -40,51 +40,50 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
         }
     }
 
-    public abstract class PointsHolder<TPoint, TPointProperty, TSelf> : IGrid<TPoint>
-        where TPoint : PointGrid, new()
+    public abstract class PointsHolder<TPointProperty, TSelf> : IGrid
         where TPointProperty : PointProperties
-        where TSelf : PointsHolder<TPoint, TPointProperty, TSelf>
+        where TSelf : PointsHolder<TPointProperty, TSelf>
     {
-        public event Action<TSelf, TPoint> OnPointCreated;
+        public event Action<TSelf, PointGrid> OnPointCreated;
         
         public ICellHolder Cells { get; }
         
-        public ICandidateValidator<TPoint> CandidateValidator { get; }
+        public ICandidateValidator CandidateValidator { get; }
         public GridProperties GridProperties { get; }
         public TPointProperty PointProperties { get; }
         
-        public ICustomPointBuilder<TPoint> CustomBuilder { get; set; }
+        public ICustomPointBuilder CustomBuilder { get; set; }
         
-        public IEnumerable<TPoint> Points => _points.Where(x => x != null);
+        public IEnumerable<PointGrid> Points => _points.Where(x => x != null);
         
         public int PointCount => _points.Count;
 
         private Queue<int> _emptyPointIndexes;
 
-        private readonly List<TPoint> _points;
+        private readonly List<PointGrid> _points;
 
-        protected PointsHolder(ICellHolder cells, ICandidateValidator<TPoint> candidateValidator, GridProperties gridProperties, TPointProperty pointProperties)
+        protected PointsHolder(ICellHolder cells, ICandidateValidator candidateValidator, GridProperties gridProperties, TPointProperty pointProperties)
         {
             Cells = cells;
             GridProperties = gridProperties;
             PointProperties = pointProperties;
             CandidateValidator = candidateValidator;
             
-            _points = new List<TPoint>();
+            _points = new List<PointGrid>();
         }
 
-        public int IndexOf(in TPoint point)
+        public int IndexOf(in PointGrid point)
         {
             return _points.IndexOf(point);
         }
         
-        public TPoint GetPoint(int x, int y)
+        public PointGrid GetPoint(int x, int y)
         {
             int index = Cells.GetCellValue(x, y) - 1;
             return index > -1 ? _points[index] : default;
         }
 
-        public void RemovePoint(TPoint point)
+        public void RemovePoint(PointGrid point)
         {
             int pointIndex = _points.IndexOf(point);
             if(pointIndex < 0) return;
@@ -120,7 +119,7 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
             _emptyPointIndexes.Enqueue(pointIndex);
         }
         
-        public int TrySpawnPointFrom(TPoint point, out TPoint newPoint)
+        public int TrySpawnPointFrom(PointGrid point, out PointGrid newPoint)
         {
             for (var i = 0; i < PointProperties.Tries; i++)
             {
@@ -137,12 +136,7 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
                     // if (IsCandidateValid(candidate))
                     if (CandidateValidator.IsValid(this, candidate, GetSearchSize(candidate.Radius)))
                     {
-                        newPoint = new TPoint
-                        {
-                            WorldPosition = candidate.WorldPosition,
-                            Radius = candidate.Radius,
-                            Margin = candidate.Margin
-                        };
+                        newPoint = CreatePoint(candidate);
                         
                         newPoint.CellMin = Cells.CellFromWorldPosition(
                             worldPosition: newPoint.WorldPosition, 
@@ -170,7 +164,7 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
             return -1;
         }
 
-        public bool AddPoint(TPoint point)
+        public bool AddPoint(PointGrid point)
         {
             var candidate = new Candidate
             {
@@ -212,22 +206,22 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
         
             return false;
         }
-        
-        public HashSet<TPoint> GetPointsAround(in TPoint pointWorld, int region)
+
+        public HashSet<PointGrid> GetPointsAround(in PointGrid pointWorld, int region)
         {
-            HashSet<TPoint> set = GetPointsAround(pointWorld.CellMin, pointWorld.CellMax, region);
+            HashSet<PointGrid> set = GetPointsAround(pointWorld.CellMin, pointWorld.CellMax, region);
             set.Remove(pointWorld);
             return set;
         }
-        
-        public HashSet<TPoint> GetPointsAround(in Vector2Int cellMin, in Vector2Int cellMax, int region)
+
+        public HashSet<PointGrid> GetPointsAround(in Vector2Int cellMin, in Vector2Int cellMax, int region)
         {
             var from = new Vector2Int(Mathf.Max(Cells.MinBound.x, cellMin.x - region),
                 Mathf.Max(Cells.MinBound.y, cellMin.y - region));
             var to = new Vector2Int(Mathf.Min(Cells.MaxBound.x, cellMax.x + region),
                 Mathf.Min(Cells.MaxBound.y, cellMax.y + region));
 
-            var result = new HashSet<TPoint>();
+            var result = new HashSet<PointGrid>();
 
             for (int y = from.y; y < to.y; y++)
             {
@@ -235,7 +229,7 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
                 {
                     if(Cells.IsCellEmpty(x, y)) continue;
 
-                    TPoint point = _points[Cells.GetCellValue(x, y) - 1];
+                    PointGrid point = _points[Cells.GetCellValue(x, y) - 1];
                     result.Add(point);
                 }
             }
@@ -247,19 +241,26 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
         {
             return CellToWorldCoordinate(cell.x, cell.y);
         }
+
         public Vector2 CellToWorldCoordinate(int x, int y)
         {
             float x1 = GridProperties.CellSize * x + GridProperties.PositionOffset.x;
             float y1 = GridProperties.CellSize * y + GridProperties.PositionOffset.y;
             return new Vector2(x1, y1);
         }
-        
+
         public void Clear()
         {
             _points.Clear();
             Cells.Clear();
         }
-        
+
+        protected virtual PointGrid CreatePoint(Candidate candidate)
+        {
+            return new PointGrid(worldPosition: candidate.WorldPosition,
+                radius: candidate.Radius, margin: candidate.Margin);
+        }
+
         protected bool IsCandidateInAABB(in Candidate candidate)
         {
             if (GridProperties.PointsLocation == PointsLocation.CenterInsideGrid)
@@ -287,9 +288,9 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
         
         protected abstract float CreateCandidateRadius(int currentTry, int maxTries);
         
-        public TPoint GetPointByIndex(int pointIndex) => _points[pointIndex - 1];
+        public PointGrid GetPointByIndex(int pointIndex) => _points[pointIndex - 1];
         
-        protected int StorePoint(TPoint point)
+        protected int StorePoint(PointGrid point)
         {
             int pointIndex;
             
@@ -311,7 +312,7 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
             return pointIndex;
         }
         
-        protected virtual void OnPointCreatedInternal(in TPoint point, int pointCellIndex)
+        protected virtual void OnPointCreatedInternal(in PointGrid point, int pointCellIndex)
         {
             Cells.SetCellValue(point.CellMin.x, point.CellMin.y, pointCellIndex);
             Cells.SetCellValue(point.CellMax.x, point.CellMax.y, pointCellIndex);
@@ -353,7 +354,7 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
             }
         }
         
-        private bool IsInsideCircle(TPoint point, float sqrtRad, float x, float y)
+        private bool IsInsideCircle(PointGrid point, float sqrtRad, float x, float y)
         {
             double dx = x - point.WorldPosition.x;
             double dy = y - point.WorldPosition.y;

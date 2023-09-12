@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Builders;
 using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids;
 using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Models;
@@ -92,7 +93,7 @@ namespace andromeda_poisson_disk_sampling.Demo2
             
             _grid.Fill();
             sw.Stop();
-            Debug.LogWarning($"Benchmark: {sw.Elapsed.TotalMilliseconds} ms ({_grid.Points.Count} points)");
+            Debug.LogWarning($"Benchmark: {sw.Elapsed.TotalMilliseconds} ms ({_grid.Points.Count()} points)");
             // foreach (Point point in _grid2.Points)
             // {
             //     PointSphere mb = Instantiate(Pref);

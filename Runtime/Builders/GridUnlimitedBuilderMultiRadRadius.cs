@@ -3,23 +3,26 @@ using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Models;
 using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Properties;
 using UnityEngine;
 
+
 namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Builders
 {
-    public class GridUnlimitedBuilderMultiRadRadius<TPoint> : 
-        GridBuilder<PointPropertiesMultiRadius, PointPropertiesBuilderMultiRadius, 
-            GridMultiRadUnlimited<TPoint>, TPoint, GridUnlimitedBuilderMultiRadRadius<TPoint>>
-        where TPoint : PointGrid, new()
+    public abstract class GridUnlimitedBuilderMultiRadRadius<TGrid> : 
+        GridBuilder<PointPropertiesMultiRadius, 
+            PointPropertiesBuilderMultiRadius, 
+            TGrid,
+            GridUnlimitedBuilderMultiRadRadius<TGrid>>
+        where TGrid : GridMultiRadUnlimited
     {
 
-        private ICandidateValidator<TPoint> _candidateValidator;
+        private ICandidateValidator _candidateValidator;
         
-        public GridUnlimitedBuilderMultiRadRadius<TPoint> WithCandidateValidator(ICandidateValidator<TPoint> candidateValidator)
+        public GridUnlimitedBuilderMultiRadRadius<TGrid> WithCandidateValidator(ICandidateValidator candidateValidator)
         {
             _candidateValidator = candidateValidator;
             return this;
         }
 
-        public override GridMultiRadUnlimited<TPoint> Build()
+        public override TGrid Build()
         {
             PointPropertiesMultiRadius pointProperties = PointPropertiesBuilder.Build();
             GridProperties gridProperties = BuildGridProperties();
@@ -33,16 +36,40 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Builders
                                     + gridProperties.PositionOffset;
 
             gridProperties.FillCellsInsidePoint = true;
-            
-            if (_candidateValidator != null)
+
+            return BuildInternal(pointProperties, gridProperties, _candidateValidator);
+            // if (_candidateValidator != null)
+            // {
+            //     return new GridMultiRadUnlimited(pointProperties, gridProperties, _candidateValidator)
+            //     {
+            //         CustomBuilder = CustomBuilder
+            //     };
+            // }
+            //
+            // return new GridMultiRadUnlimited(pointProperties, gridProperties)
+            // {
+            //     CustomBuilder = CustomBuilder
+            // };
+        }
+
+        protected abstract TGrid BuildInternal(PointPropertiesMultiRadius pointProperties, GridProperties gridProperties, ICandidateValidator candidateValidator);
+       
+    }
+
+    public class GridUnlimitedBuilderMultiRadRadius : GridUnlimitedBuilderMultiRadRadius<GridMultiRadUnlimited>
+    {
+        protected override GridMultiRadUnlimited BuildInternal(PointPropertiesMultiRadius pointProperties,
+            GridProperties gridProperties, ICandidateValidator candidateValidator)
+        {
+            if (candidateValidator != null)
             {
-                return new GridMultiRadUnlimited<TPoint>(pointProperties, gridProperties, _candidateValidator)
+                return new GridMultiRadUnlimited(pointProperties, gridProperties, candidateValidator)
                 {
                     CustomBuilder = CustomBuilder
                 };
             }
             
-            return new GridMultiRadUnlimited<TPoint>(pointProperties, gridProperties)
+            return new GridMultiRadUnlimited(pointProperties, gridProperties)
             {
                 CustomBuilder = CustomBuilder
             };

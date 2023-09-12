@@ -89,7 +89,7 @@ namespace andromeda_poisson_disk_sampling.Demo2
 
             Gizmos.color = SearchRangeColor;
             
-            int searchSize = Mathf.RoundToInt((_point.Radius + _grid.UserProperties.PointMargin) / _grid.GridProperties.CellSize);
+            int searchSize = Mathf.RoundToInt((_point.FullRadius) / _grid.GridProperties.CellSize);
             int startX = Mathf.Max(0, _point.CellMin.x - searchSize);
             int endX = Mathf.Min(_point.CellMax.x + searchSize, _grid.GridProperties.CellLenghtX - 1);
             int startY = Mathf.Max(0, _point.CellMin.y - searchSize);

@@ -6,15 +6,24 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Models
     {
         public float FullRadius => Radius + Margin;
         
-        public Vector3 WorldPosition;
-        public float Radius;
-        public float Margin;
+        public readonly Vector3 WorldPosition;
+        public readonly float Radius;
+        public readonly float Margin;
 
+        protected PointAbstract(Vector3 worldPosition, float radius, float margin)
+        {
+            WorldPosition = worldPosition;
+            Radius = radius;
+            Margin = margin;
+        }
+        
         public override bool Equals(object obj)
         {
             if (obj is PointGrid point)
             {
-                return WorldPosition.Equals(point.WorldPosition) && Radius.Equals(point.Radius);
+                return WorldPosition.Equals(point.WorldPosition) 
+                       && Radius.Equals(point.Radius) 
+                       && Margin.Equals(point.Margin);
             }
 
             return false;
@@ -22,7 +31,7 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Models
 
         public override int GetHashCode()
         {
-            return (WorldPosition, Radius).GetHashCode();
+            return (WorldPosition, Radius, Margin).GetHashCode();
         }
     }
 }

@@ -6,15 +6,14 @@ using UnityEngine;
 
 namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Builders
 {
-    public abstract class GridBuilder<TPointProperties, TPointPropertiesBuilder, TGrid, TPoint, TSelf> : IBuilder<TGrid>
+    public abstract class GridBuilder<TPointProperties, TPointPropertiesBuilder, TGrid, TSelf> : IBuilder<TGrid>
         where TPointProperties : PointProperties
         where TPointPropertiesBuilder : PointPropertiesBuilder<TPointProperties, TPointPropertiesBuilder>, new()
-        where TPoint : PointGrid, new()
-        where TSelf : GridBuilder<TPointProperties, TPointPropertiesBuilder, TGrid, TPoint, TSelf>
+        where TSelf : GridBuilder<TPointProperties, TPointPropertiesBuilder, TGrid, TSelf>
     {
         protected TPointPropertiesBuilder PointPropertiesBuilder;
         protected GridPropertiesBuilderForGrid GridPropertiesBuilder;
-        protected ICustomPointBuilder<TPoint> CustomBuilder;
+        protected ICustomPointBuilder CustomBuilder;
 
         public TSelf WithPointProperties(Action<TPointPropertiesBuilder> builder)
         {
@@ -42,7 +41,7 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Builders
             return (TSelf) this;
         }
         
-        public TSelf WithCustomPointBuilder(ICustomPointBuilder<TPoint> customBuilder) 
+        public TSelf WithCustomPointBuilder(ICustomPointBuilder customBuilder) 
         {
             CustomBuilder = customBuilder;
             return (TSelf) this;
@@ -61,7 +60,7 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Builders
     }
 
     public class GridBuilderConstRadius : 
-        GridBuilder<PointPropertiesConstRadius, PointPropertiesBuilderConsRadius, GridStatic, PointGrid, GridBuilderConstRadius>
+        GridBuilder<PointPropertiesConstRadius, PointPropertiesBuilderConsRadius, GridStatic, GridBuilderConstRadius>
     {
         public override GridStatic Build()
         {
@@ -84,7 +83,7 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Builders
     }
 
     public class GridBuilderMultiRadius : 
-        GridBuilder<PointPropertiesMultiRadius, PointPropertiesBuilderMultiRadius, GridMultiRad, PointGrid, GridBuilderMultiRadius>
+        GridBuilder<PointPropertiesMultiRadius, PointPropertiesBuilderMultiRadius, GridMultiRad, GridBuilderMultiRadius>
     {
         public override GridMultiRad Build()
         {
