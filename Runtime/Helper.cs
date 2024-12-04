@@ -1,5 +1,8 @@
 using System;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids;
+using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Models;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -13,18 +16,30 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime
         public static void ClearConsole()
         {
             var logEntries = Type.GetType("UnityEditor.LogEntries, UnityEditor.dll");
- 
-            var clearMethod = logEntries.GetMethod("Clear", BindingFlags.Static | BindingFlags.Public);
- 
+            MethodInfo clearMethod = logEntries
+                .GetMethod("Clear", BindingFlags.Static | BindingFlags.Public);
             clearMethod.Invoke(null, null);
         }
 
         public static Vector3 GetCandidateRandomWorldPosition(Vector3 spawnWorldPosition,
             float spawnerRadius, float candidateRadius)
         {
-            var angel = Random.value * DoublePI;
+            float angel = Random.value * DoublePI;
             var direction = new Vector3(Mathf.Sin(angel), Mathf.Cos(angel));
             return spawnWorldPosition + direction * Random.Range(2 * spawnerRadius, candidateRadius * 3f);
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static SearchBoundaries GetSearchBoundaries(in IGrid grid, Vector2Int cellMin, Vector2Int cellMax, int region)
+        {
+            return new SearchBoundaries
+            {
+                StartX = Mathf.Max(grid.Cells.MinBound.x, cellMin.x - region),
+                EndX = Mathf.Min(cellMax.x + region, grid.Cells.MaxBound.x - 1),
+                StartY = Mathf.Max(grid.Cells.MinBound.y, cellMin.y - region),
+                EndY = Mathf.Min(cellMax.y + region, grid.Cells.MaxBound.y - 1),
+            };
+        }
+        
     }
 }

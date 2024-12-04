@@ -1,108 +1,56 @@
 using System;
 using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids;
-using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Models;
+using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids.CandidateValidator;
 using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Properties;
-using UnityEngine;
 
 namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Builders
 {
-    public abstract class GridBuilder<TPointProperties, TPointPropertiesBuilder, TGrid, TSelf> : IBuilder<TGrid>
-        where TPointProperties : PointProperties
-        where TPointPropertiesBuilder : PointPropertiesBuilder<TPointProperties, TPointPropertiesBuilder>, new()
-        where TSelf : GridBuilder<TPointProperties, TPointPropertiesBuilder, TGrid, TSelf>
+
+    public static class GridBuilder
     {
-        protected TPointPropertiesBuilder PointPropertiesBuilder;
-        protected GridPropertiesBuilderForGrid GridPropertiesBuilder;
-        protected ICustomPointBuilder CustomBuilder;
-
-        public TSelf WithPointProperties(Action<TPointPropertiesBuilder> builder)
+        public static GridBuilderConstRadius ConstRadius()
         {
-            var b = new TPointPropertiesBuilder();
-            builder(b);
-            return WithPointProperties(b);
+            return new GridBuilderConstRadius();
         }
         
-        public TSelf WithPointProperties(TPointPropertiesBuilder builder)
+        public static GridBuilderMultiRadius MultiRadius()
         {
-            PointPropertiesBuilder = builder;
-            return (TSelf) this;
-        }
-        
-        public TSelf WithGridProperties(Action<GridPropertiesBuilderForGrid> builder)
-        {
-            var b = new GridPropertiesBuilderForGrid();
-            builder(b);
-            return WithGridProperties(b);
-        }
-        
-        public TSelf WithGridProperties(GridPropertiesBuilderForGrid builder)
-        {
-            GridPropertiesBuilder = builder;
-            return (TSelf) this;
-        }
-        
-        public TSelf WithCustomPointBuilder(ICustomPointBuilder customBuilder) 
-        {
-            CustomBuilder = customBuilder;
-            return (TSelf) this;
-        }
-
-        public abstract TGrid Build();
-
-        protected GridProperties BuildGridProperties()
-        {
-            if (GridPropertiesBuilder == null)
-            {
-                return new GridProperties();
-            }
-            return GridPropertiesBuilder.Build();
+            return new GridBuilderMultiRadius();
         }
     }
-
-    public class GridBuilderConstRadius : 
-        GridBuilder<PointPropertiesConstRadius, PointPropertiesBuilderConsRadius, GridStatic, GridBuilderConstRadius>
+    
+    public abstract class GridBuilder<TPointProperties, TSelf>
+        where TSelf : GridBuilder<TPointProperties, TSelf>
     {
-        public override GridStatic Build()
+        protected Action<GridProperties> GridConsumer;
+        protected TPointProperties PointProperties;
+        protected ICandidateValidator CandidateValidator;
+        protected bool IsGridUnlimited = false;
+        
+        public TSelf WithPointProperties(TPointProperties pointProperties)
         {
-            PointPropertiesConstRadius pointProperties = PointPropertiesBuilder.Build();
-            GridProperties gridProperties = BuildGridProperties();
-            
-            float cellSize = (pointProperties.Radius + pointProperties.PointMargin) / 2f;
-
-            gridProperties.CellSize = cellSize;
-            gridProperties.CellLenghtY = Mathf.CeilToInt(gridProperties.Size.y / cellSize);
-            gridProperties.CellLenghtX = Mathf.CeilToInt(gridProperties.Size.x / cellSize);
-            gridProperties.Center = new Vector3(gridProperties.Size.x / 2f, gridProperties.Size.y / 2f) 
-                                + gridProperties.PositionOffset;
-
-            return new GridStatic(pointProperties, gridProperties)
-            {
-                CustomBuilder = CustomBuilder
-            };
+            PointProperties = pointProperties;
+            return (TSelf) this;
         }
-    }
-
-    public class GridBuilderMultiRadius : 
-        GridBuilder<PointPropertiesMultiRadius, PointPropertiesBuilderMultiRadius, GridMultiRad, GridBuilderMultiRadius>
-    {
-        public override GridMultiRad Build()
+        
+        public TSelf WithGridProperties(Action<GridProperties> gridConsumer)
         {
-            PointPropertiesMultiRadius pointProperties = PointPropertiesBuilder.Build();
-            GridProperties gridProperties = BuildGridProperties();
-            
-            float cellSize = (pointProperties.RadiusProvider.MinRadius + pointProperties.PointMargin) / 2f;
-
-            gridProperties.CellSize = cellSize;
-            gridProperties.CellLenghtY = Mathf.CeilToInt(gridProperties.Size.y / cellSize);
-            gridProperties.CellLenghtX = Mathf.CeilToInt(gridProperties.Size.x / cellSize);
-            gridProperties.Center = new Vector3(gridProperties.Size.x / 2f, gridProperties.Size.y / 2f) 
-                                    + gridProperties.PositionOffset;
-
-            gridProperties.FillCellsInsidePoint = true;
-            return new GridMultiRad(pointProperties, gridProperties)
-            {
-                CustomBuilder = CustomBuilder
-            };
+            GridConsumer = gridConsumer;
+            return (TSelf) this;
         }
+        
+        public TSelf WithCandidateValidator(ICandidateValidator candidateValidator)
+        {
+            CandidateValidator = candidateValidator;
+            return (TSelf) this;
+        }
+        
+        public TSelf IsUnlimited(bool isUnlimited)
+        {
+            IsGridUnlimited = isUnlimited;
+            return (TSelf) this;
+        }
+                
+        public abstract IGrid Build();
     }
 }

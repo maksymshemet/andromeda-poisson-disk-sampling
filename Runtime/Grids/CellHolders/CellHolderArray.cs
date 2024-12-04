@@ -4,7 +4,7 @@ using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Models;
 using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Properties;
 using UnityEngine;
 
-namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
+namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids.CellHolders
 {
     public class CellHolderArray : ICellHolder
     {
@@ -15,11 +15,11 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
         );
 
         private readonly int[,] _cells;
-        public GridProperties GridProperties { get; }
+        private readonly GridProperties _gridProperties;
         
         public CellHolderArray(GridProperties gridProperties)
         {
-            GridProperties = gridProperties;
+            _gridProperties = gridProperties;
             
             _cells = new int[gridProperties.CellLenghtY, gridProperties.CellLenghtX];
         }
@@ -34,8 +34,8 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
         
         public Vector2Int CellFromWorldPosition(Vector3 worldPosition, WorldToCellPositionMethod method = WorldToCellPositionMethod.Round)
         {
-            float x = (worldPosition.x - GridProperties.PositionOffset.x) / GridProperties.CellSize;
-            float y = (worldPosition.y - GridProperties.PositionOffset.y) / GridProperties.CellSize;
+            float x = (worldPosition.x - _gridProperties.PositionOffset.x) / _gridProperties.CellSize;
+            float y = (worldPosition.y - _gridProperties.PositionOffset.y) / _gridProperties.CellSize;
 
             Vector2Int cellPosition = method switch
             {
@@ -60,10 +60,10 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
         
         public bool IsPositionInAABB(Vector3 worldPosition)
         {
-            return worldPosition.x >= GridProperties.PositionOffset.x &&
-                   worldPosition.y >= GridProperties.PositionOffset.y &&
-                   worldPosition.x <= GridProperties.PositionOffset.x + GridProperties.Size.x &&
-                   worldPosition.y <= GridProperties.PositionOffset.y + GridProperties.Size.y;
+            return worldPosition.x >= _gridProperties.PositionOffset.x &&
+                   worldPosition.y >= _gridProperties.PositionOffset.y &&
+                   worldPosition.x <= _gridProperties.PositionOffset.x + _gridProperties.Size.x &&
+                   worldPosition.y <= _gridProperties.PositionOffset.y + _gridProperties.Size.y;
         }
 
         public void Clear()
@@ -77,7 +77,7 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
             }
         }
 
-        public IEnumerable<CellValue> Values()
+        public IEnumerable<CellValue> GetValues()
         {
             for (var y = 0; y < _cells.GetLength(0); y++)
             {

@@ -1,4 +1,4 @@
-namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
+namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids.CellHolders
 {
     public struct CellValue
     {

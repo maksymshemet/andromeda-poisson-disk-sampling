@@ -11,8 +11,8 @@ namespace andromeda_poisson_disk_sampling.Demo2
     {
         public Color PointColor { get; set; }
         
-        private PointGrid _point;
-        private GridStatic _grid;
+        private Point _point;
+        private IGrid _grid;
         
         public Color RadiusColor = Color.green;
         public Color RadiusColorSelected = new Color(0.01851193f, 0.3018868f,0.05279091f, 1);
@@ -44,18 +44,18 @@ namespace andromeda_poisson_disk_sampling.Demo2
 
         private GridProperties _gridProperties;
         
-        public void Init(PointGrid point, GridStatic grid)
-        {
-            name = $"[{point.WorldPosition}]";
-            transform.position = point.WorldPosition;
-            transform.localScale = new Vector3(point.Radius, point.Radius, point.Radius) * 2;
-
-            _point = point;
-            _grid = grid;
-            _gridProperties = grid.GridProperties;
-        }
+        // public void Init(Point point, GridStatic grid)
+        // {
+        //     name = $"[{point.WorldPosition}]";
+        //     transform.position = point.WorldPosition;
+        //     transform.localScale = new Vector3(point.Radius, point.Radius, point.Radius) * 2;
+        //
+        //     _point = point;
+        //     _grid = grid;
+        //     _gridProperties = grid.GridProperties;
+        // }
         
-        public void Init(PointGrid point, GridStaticUnlimited grid)
+        public void Init(Point point, IGrid grid)
         {
             name = $"[{point.WorldPosition}]";
             transform.position = point.WorldPosition;
@@ -65,7 +65,7 @@ namespace andromeda_poisson_disk_sampling.Demo2
             _gridProperties = grid.GridProperties;
             
             // int a= Random.Range(0,2);
-            var sphere =GetComponent<Renderer>();
+            var sphere = GetComponent<Renderer>();
             sphere.material.SetColor("_Color", PointColor);
         }
         

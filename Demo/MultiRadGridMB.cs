@@ -1,16 +1,27 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Builders;
 using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids;
 using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Models;
+using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Properties.Points;
+using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Properties.Radii;
+using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.RadiiSelectors.MultiRadiiSelectors;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 using Random = UnityEngine.Random;
 
 namespace andromeda_poisson_disk_sampling.Demo2
 {
+    [Serializable]
+    public class PredefinedRadii
+    {
+        public float Radius;
+        public float Margin = 0;
+        
+    }
     public class MultiRadGridMB : MonoBehaviour
     {
         [Header("MinMax Radii")]
@@ -19,8 +30,9 @@ namespace andromeda_poisson_disk_sampling.Demo2
 
         [Header("Predefined Radii")] 
         public bool UsePredefinedRadii;
-        public float[] PredefinedRadii;
-        
+        public PredefinedRadii[] PredefinedRadii;
+        public PredefinedRadiusSelectType RadiusSelectType;
+            
         [Header("Other")]
         public PointMultiRadSphere Pref;
 
@@ -32,11 +44,12 @@ namespace andromeda_poisson_disk_sampling.Demo2
         public Vector3 PositionOffset;
         public bool UseRandomSeed = true;
         public int RandomSeed;
+        public bool CreateGameObjects = true;
         
         public bool Trigger;
         private bool _trigger;
 
-        private GridMultiRad _grid;
+        private IGrid _grid;
         private List<PointMultiRadSphere> _spheres;
         
         private void Awake()
@@ -53,33 +66,48 @@ namespace andromeda_poisson_disk_sampling.Demo2
             }
             
             _spheres.Clear();
-
-            GridBuilderMultiRadius builder = new GridBuilderMultiRadius()
-                .WithPointProperties(pointProps =>
+            
+            IRadiusSelectorMulti radiusSelector = null;
+            if (UsePredefinedRadii)
+            {
+                radiusSelector = new RadiusSelectorMultiPredefined(new RadiusPropertiesPredefined
                 {
-                    pointProps
-                        .WithRadiusPerTryCurve(RadiusPerTryCurve)
-                        .WithTries(Tries)
-                        .WithMargin(PointMargin);
+                    PredefinedRadii = PredefinedRadii
+                        .Select(x => new PointSize
+                        {
+                            Radius = x.Radius,
+                            Margin = x.Margin
+                        }).ToArray(),
+                    RadiusSelectType = RadiusSelectType,
+                    RadiusPerTryCurve = RadiusPerTryCurve
+                });
+            }
+            else
+            {
+                radiusSelector = new RadiusSelectorMultiRandom(new RadiusPropertiesMinMax
+                {
+                    MinRadius = MinRadius,
+                    MaxRadius = MaxRadius,
+                    RadiusPerTryCurve = RadiusPerTryCurve
+                });
+            }
 
-                    if (UsePredefinedRadii)
-                    {
-                        pointProps.WithRadii(PredefinedRadii);
-                    }
-                    else
-                    {
-                        pointProps.WithRadii(MinRadius, MaxRadius);
-                    }
+            GridBuilderMultiRadius builder = GridBuilder.MultiRadius()
+                .WithPointProperties(new PointPropertiesMultiRadius
+                {
+                    RadiusSelector = radiusSelector
                 })
-                .WithGridProperties(gridPros => gridPros
-                    .WithSize(Size)
-                    .WithPointsLocation(PointsLocation)
-                    .WithPositionOffset(PositionOffset)
-                );
+                .WithGridProperties(grid =>
+                {
+                    grid.Size = Size;
+                    grid.PointsLocation = PointsLocation;
+                    grid.PositionOffset = PositionOffset;
+                    grid.Tries = Tries;
+                });
 
             _grid = builder.Build();
             transform.position = PositionOffset;
-            _grid.OnPointCreated += GridOnOnPointCreated;
+            // _grid.OnPointCreated += GridOnOnPointCreated;
             int ts = DateTime.Now.Millisecond;
             Debug.LogWarning($"seed: {ts}");
             
@@ -91,20 +119,67 @@ namespace andromeda_poisson_disk_sampling.Demo2
             var sw = new Stopwatch();
             sw.Start();
             
-            _grid.Fill();
+            Fill();
+            
             sw.Stop();
             Debug.LogWarning($"Benchmark: {sw.Elapsed.TotalMilliseconds} ms ({_grid.Points.Count()} points)");
-            // foreach (Point point in _grid2.Points)
-            // {
-            //     PointSphere mb = Instantiate(Pref);
-            //     mb.Init(point, _grid2);
-            //     _spheres.Add(mb);
-            // }
+
+            if (CreateGameObjects)
+            {
+                foreach (Point point in _grid.Points)
+                {
+                    GridOnOnPointCreated(_grid, point);
+                }
+            }
 
             Camera.main.transform.position = _grid.GridProperties.Center;
         }
+        
+        public void Fill()
+        {
+            Vector3 fakeWorldPosition = new Vector3(
+                x: _grid.GridProperties.Size.x / 2f, 
+                y: _grid.GridProperties.Size.y / 2f) + _grid.GridProperties.PositionOffset;
 
-        private void GridOnOnPointCreated(GridMultiRad grid, PointGrid point)
+            var candidate = new Candidate{
+                WorldPosition=fakeWorldPosition, 
+                Radius = UsePredefinedRadii ? PredefinedRadii[0].Radius : MinRadius, 
+                Margin = UsePredefinedRadii ? PredefinedRadii[0].Margin : PointMargin
+            };
+            
+            Point point = _grid.TryAddPoint(candidate);
+            if (point == null)
+            {
+                throw new Exception("Couldn't spawn the point");
+            }
+
+            var spawnPoints = new List<int> { 1 };
+            
+            do
+            {
+                int spawnIndex = Random.Range(0, spawnPoints.Count);
+                int spawnPointIndex = spawnPoints[spawnIndex];
+                Point spawnPoint = _grid.GetPointByIndex(spawnPointIndex);
+                
+                point = _grid.TrySpawnPointFrom(spawnPoint);
+                if (point != null)
+                {
+                    spawnPoints.Add(point.Index + 1);
+                }
+                else
+                {
+                    spawnPoints[spawnIndex] = spawnPoints[^1];
+                    spawnPoints.RemoveAt(spawnPoints.Count - 1);
+                }
+                
+            #if UNITY_EDITOR
+                if (EditorCheckForEndlessSpawn(spawnPoints)) break;
+            #endif
+            }
+            while (spawnPoints.Count > 0);
+        }
+        
+        private void GridOnOnPointCreated(IGrid grid, Point point)
         {
             PointMultiRadSphere mb = Instantiate(Pref, transform, true);
             mb.Init(point, grid);
@@ -159,6 +234,14 @@ namespace andromeda_poisson_disk_sampling.Demo2
                 Gizmos.DrawLine(@from, to);
             }
             
+        }
+        
+        private bool EditorCheckForEndlessSpawn(ICollection spawnPoints)
+        {
+            if (_grid.GridProperties.CellLenghtX *_grid. GridProperties.CellLenghtY >= _grid.PointsCount) return false;
+             
+            Debug.LogError($"Endless spawn points: {spawnPoints.Count}");
+            return true;
         }
     }
 }

@@ -1,10 +1,12 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Builders;
 using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids;
 using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Models;
+using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Properties.Points;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 using Random = UnityEngine.Random;
@@ -26,7 +28,7 @@ namespace andromeda_poisson_disk_sampling.Demo2
         public bool Trigger;
         private bool _trigger;
 
-        private GridStatic _grid;
+        private IGrid _grid;
         private List<PointSphere> _spheres;
         
         private void Awake()
@@ -44,16 +46,26 @@ namespace andromeda_poisson_disk_sampling.Demo2
             
             _spheres.Clear();
             
-            _grid = new GridBuilderConstRadius()
-                .WithPointProperties(x => x
-                    .WithRadius(Radius)
-                    .WithTries(Tries)
-                    .WithMargin(PointMargin))
-                .WithGridProperties(gridPros => gridPros
-                    .WithSize(Size)
-                    .WithPointsLocation(PointsLocation)
-                    .WithPositionOffset(PositionOffset)
-                )
+            _grid = GridBuilder.ConstRadius()
+                .WithPointProperties(new PointPropertiesConstRadius
+                {
+                    Radius = Radius,
+                    PointMargin = PointMargin,
+                })
+                .WithGridProperties(grid =>
+                {
+                    grid.Size = Size;
+                    grid.PointsLocation = PointsLocation;
+                    grid.PositionOffset = PositionOffset;
+                    grid.Tries = Tries;
+                })
+                // .WithGridProperties(new GridProperties
+                // {
+                //     Size = Size,
+                //     PointsLocation = PointsLocation,
+                //     PositionOffset = PositionOffset,
+                //     Tries = Tries
+                // })
                 .Build();
             
             transform.position = PositionOffset;
@@ -69,14 +81,60 @@ namespace andromeda_poisson_disk_sampling.Demo2
             var sw = new Stopwatch();
             sw.Start();
             
-            _grid.Fill();
+            Fill();
+            
             sw.Stop();
             Debug.LogWarning($"Benchmark: {sw.Elapsed.TotalMilliseconds} ms ({_grid.Points.Count()} points)");
             
             Camera.main.transform.position = _grid.GridProperties.Center;
         }
+        
+        
+        public void Fill()
+        {
+            Vector3 fakeWorldPosition = new Vector3(
+                x: _grid.GridProperties.Size.x / 2f, 
+                y: _grid.GridProperties.Size.y / 2f) + _grid.GridProperties.PositionOffset;
 
-        private void GridOnOnPointCreated(GridStatic grid, PointGrid point)
+            var candidate = new Candidate{
+                WorldPosition=fakeWorldPosition, 
+                Radius = Radius, 
+                Margin = PointMargin
+            };
+            
+            Point point = _grid.TryAddPoint(candidate);
+            if (point == null)
+            {
+                throw new Exception("Couldn't spawn the point");
+            }
+
+            var spawnPoints = new List<int> { 1 };
+            
+            do
+            {
+                int spawnIndex = Random.Range(0, spawnPoints.Count);
+                int spawnPointIndex = spawnPoints[spawnIndex];
+                Point spawnPoint = _grid.GetPointByIndex(spawnPointIndex);
+                
+                point = _grid.TrySpawnPointFrom(spawnPoint);
+                if (point != null)
+                {
+                    spawnPoints.Add(point.Index + 1);
+                }
+                else
+                {
+                     spawnPoints[spawnIndex] = spawnPoints[^1];
+                     spawnPoints.RemoveAt(spawnPoints.Count - 1);
+                }
+                
+#if UNITY_EDITOR
+                if (EditorCheckForEndlessSpawn(spawnPoints)) break;
+#endif
+            }
+            while (spawnPoints.Count > 0);
+        }
+
+        private void GridOnOnPointCreated(IGrid grid, Point point)
         {
             PointSphere mb = Instantiate(Pref, transform, true);
             mb.Init(point, grid);
@@ -132,5 +190,13 @@ namespace andromeda_poisson_disk_sampling.Demo2
             }
             
         }
+        
+         private bool EditorCheckForEndlessSpawn(ICollection spawnPoints)
+         {
+             if (_grid.GridProperties.CellLenghtX *_grid. GridProperties.CellLenghtY >= _grid.PointsCount) return false;
+             
+             Debug.LogError($"Endless spawn points: {spawnPoints.Count}");
+             return true;
+         }
     }
 }

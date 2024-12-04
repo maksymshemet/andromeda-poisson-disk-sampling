@@ -4,7 +4,7 @@ using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Models;
 using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Properties;
 using UnityEngine;
 
-namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
+namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids.CellHolders
 {
     public class CellHolderDictionary : ICellHolder
     {
@@ -12,12 +12,11 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
         public Vector2Int MaxBound => new Vector2Int(int.MaxValue, int.MaxValue);
         
         private readonly Dictionary<int, Dictionary<int, int>> _cells;
-
-        public GridProperties GridProperties { get; }
+        private readonly GridProperties _gridProperties;
         
         public CellHolderDictionary(GridProperties gridProperties)
         {
-            GridProperties = gridProperties;
+            _gridProperties = gridProperties;
             _cells = new Dictionary<int, Dictionary<int, int>>();
         }
 
@@ -54,6 +53,11 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
             if (_cells.TryGetValue(y, out Dictionary<int, int> rows))
             {
                 rows.Remove(x);
+
+                if (rows.Count == 0)
+                {
+                    _cells.Remove(y);
+                }
             }
         }
 
@@ -72,8 +76,8 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
         
         public Vector2Int CellFromWorldPosition(Vector3 worldPosition, WorldToCellPositionMethod method = WorldToCellPositionMethod.Round)
         {
-            float x = (worldPosition.x - GridProperties.PositionOffset.x) / GridProperties.CellSize;
-            float y = (worldPosition.y - GridProperties.PositionOffset.y) / GridProperties.CellSize;
+            float x = (worldPosition.x - _gridProperties.PositionOffset.x) / _gridProperties.CellSize;
+            float y = (worldPosition.y - _gridProperties.PositionOffset.y) / _gridProperties.CellSize;
 
             return method switch
             {
@@ -99,7 +103,7 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
             _cells.Clear();
         }
         
-        public IEnumerable<CellValue> Values()
+        public IEnumerable<CellValue> GetValues()
         {
             foreach (KeyValuePair<int, Dictionary<int, int>> rows in _cells)
             {

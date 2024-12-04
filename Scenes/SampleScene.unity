@@ -156,11 +156,13 @@ MonoBehaviour:
   MaxRadius: 2
   UsePredefinedRadii: 1
   PredefinedRadii:
-  - 0.1
-  - 0.5
-  - 1
-  - 1.5
-  - 2
+  - Radius: 1
+    Margin: 1
+  - Radius: 0.4
+    Margin: 0
+  - Radius: 0.5
+    Margin: 0
+  RadiusSelectType: 0
   Pref: {fileID: 5123184430721908561, guid: 944917b3421ba44569926969ab9ec6a2, type: 3}
   PointsLocation: 0
   RadiusPerTryCurve:
@@ -196,13 +198,13 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  PointMargin: 0.3
+  PointMargin: 0.2
   Tries: 20
-  Size: {x: 10, y: 10}
+  Size: {x: 30, y: 30}
   PositionOffset: {x: 0, y: 0, z: 0}
   UseRandomSeed: 1
   RandomSeed: 439
-  Trigger: 0
+  Trigger: 1
 --- !u!4 &250800900
 Transform:
   m_ObjectHideFlags: 0
@@ -413,6 +415,7 @@ MonoBehaviour:
   MaxRadius: 2
   UsePredefinedRadii: 0
   PredefinedRadii: []
+  RadiusSelectType: 0
   Pref: {fileID: 5123184430721908561, guid: 944917b3421ba44569926969ab9ec6a2, type: 3}
   PointsLocation: 0
   RadiusPerTryCurve:

@@ -6,8 +6,8 @@ namespace andromeda_poisson_disk_sampling.Demo2
 {
     public class PointMultiRadSphere : MonoBehaviour
     {
-        private PointGrid _point;
-        private GridMultiRad _grid;
+        private Point _point;
+        private IGrid _grid;
         
         public Color RadiusColor = Color.green;
         public Color RadiusColorSelected = new Color(0.01851193f, 0.3018868f,0.05279091f, 1);
@@ -36,7 +36,7 @@ namespace andromeda_poisson_disk_sampling.Demo2
         public Color SearchRangeColor = Color.yellow;
         public float SearchRangeRadius = 0.16f;
         
-        public void Init(PointGrid point, GridMultiRad grid)
+        public void Init(Point point, IGrid grid)
         {
             name = $"[{point.WorldPosition}] r{point.Radius}";
             transform.position = point.WorldPosition;
@@ -89,7 +89,7 @@ namespace andromeda_poisson_disk_sampling.Demo2
 
             Gizmos.color = SearchRangeColor;
             
-            int searchSize = Mathf.RoundToInt((_point.FullRadius) / _grid.GridProperties.CellSize);
+            int searchSize = Mathf.RoundToInt((_point.Radius + _point.Margin) / _grid.GridProperties.CellSize);
             int startX = Mathf.Max(0, _point.CellMin.x - searchSize);
             int endX = Mathf.Min(_point.CellMax.x + searchSize, _grid.GridProperties.CellLenghtX - 1);
             int startY = Mathf.Max(0, _point.CellMin.y - searchSize);
@@ -117,7 +117,7 @@ namespace andromeda_poisson_disk_sampling.Demo2
             {
                 for (var x = 0; x < _grid.GridProperties.CellLenghtX; x++)
                 {
-                    PointGrid point = _grid.GetPoint(x, y);
+                    Point point = _grid.GetPoint(x, y);
                     if (point != null && point.Equals(_point))
                     {
                         Gizmos.DrawSphere(new Vector3(

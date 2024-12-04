@@ -1,89 +1,49 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids.CandidateValidator;
+using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids.CellHolders;
 using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Models;
 using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Properties;
+using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.RadiiSelectors;
 using UnityEngine;
 
 namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
 {
-    public interface ICandidateValidator
+    public class PointsHolder : IGrid
     {
-        public bool IsValid(IGrid grid, Candidate candidate, int searchSize);
-    }
-
-    public class DefaultCandidateValidator : ICandidateValidator
-    {
-        public virtual bool IsValid(IGrid grid, Candidate candidate, int searchSize)
-        {
-            int startX = Mathf.Max(grid.Cells.MinBound.x, candidate.CellMin.x - searchSize);
-            int endX = Mathf.Min(candidate.CellMax.x + searchSize, grid.Cells.MaxBound.x - 1);
-            int startY = Mathf.Max(grid.Cells.MinBound.y, candidate.CellMin.y - searchSize);
-            int endY = Mathf.Min(candidate.CellMax.y + searchSize, grid.Cells.MaxBound.y - 1);
-            
-            for (int y = startY; y <= endY; y++)
-            {
-                for (int x = startX; x <= endX; x++)
-                {
-                    int pointIndex = grid.Cells.GetCellValue(x, y);
-                    if (pointIndex == 0) continue;
-
-                    PointGrid existingPoint = grid.GetPointByIndex(pointIndex);
-                    if (candidate.IsIntersectWithPoint(existingPoint))
-                    {
-                        return false;
-                    } 
-                }
-            }
-
-            return true;
-        }
-    }
-
-    public abstract class PointsHolder<TPointProperty, TSelf> : IGrid
-        where TPointProperty : PointProperties
-        where TSelf : PointsHolder<TPointProperty, TSelf>
-    {
-        public event Action<TSelf, PointGrid> OnPointCreated;
+        public event Action<IGrid, Point> OnPointCreated;
+        public event Action<IGrid, Point> OnPointRemoved;
         
         public ICellHolder Cells { get; }
-        
-        public ICandidateValidator CandidateValidator { get; }
         public GridProperties GridProperties { get; }
-        public TPointProperty PointProperties { get; }
-        
-        public ICustomPointBuilder CustomBuilder { get; set; }
-        
-        public IEnumerable<PointGrid> Points => _points.Where(x => x != null);
-        
-        public int PointCount => _points.Count;
+        public IEnumerable<Point> Points => GetPointsIEnumerable();
+        public int PointsCount => _points.Count;
 
         private Queue<int> _emptyPointIndexes;
+        
+        private readonly IRadiusSelector _radiusSelector;
+        private readonly ICandidateValidator _candidateValidator;
+        private readonly List<Point> _points;
 
-        private readonly List<PointGrid> _points;
-
-        protected PointsHolder(ICellHolder cells, ICandidateValidator candidateValidator, GridProperties gridProperties, TPointProperty pointProperties)
+        public PointsHolder(ICellHolder cells, ICandidateValidator candidateValidator, GridProperties gridProperties, IRadiusSelector radiusSelector)
         {
             Cells = cells;
             GridProperties = gridProperties;
-            PointProperties = pointProperties;
-            CandidateValidator = candidateValidator;
-            
-            _points = new List<PointGrid>();
-        }
+            _candidateValidator = candidateValidator;
+            _radiusSelector = radiusSelector;
 
-        public int IndexOf(in PointGrid point)
-        {
-            return _points.IndexOf(point);
+            _points = new List<Point>();
         }
         
-        public PointGrid GetPoint(int x, int y)
+        public Point GetPoint(int x, int y)
         {
             int index = Cells.GetCellValue(x, y) - 1;
             return index > -1 ? _points[index] : default;
         }
+        
+        public Point GetPointByIndex(int pointIndex) => _points[pointIndex - 1];
 
-        public void RemovePoint(PointGrid point)
+        public void RemovePoint(Point point)
         {
             int pointIndex = _points.IndexOf(point);
             if(pointIndex < 0) return;
@@ -91,137 +51,102 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
             _points[pointIndex] = null;
             
             int pointCellIndex = pointIndex + 1;
-            
-            int searchSize = GetSearchSize(point.Radius);
-            
-            int startX = Mathf.Max(Cells.MinBound.x, point.CellMin.x - searchSize);
-            int endX = Mathf.Min(point.CellMax.x + searchSize, Cells.MaxBound.x - 1);
-            int startY = Mathf.Max(Cells.MinBound.y, point.CellMin.y - searchSize);
-            int endY = Mathf.Min(point.CellMax.y + searchSize, Cells.MaxBound.y - 1);
-            
-            for (int y = startY; y <= endY; y++)
+
+            if (GridProperties.FillCellsInsidePoint)
             {
-                for (int x = startX; x <= endX; x++)
+                int searchSize = GetSearchSize(point.Radius);
+
+                SearchBoundaries searchBoundaries = Helper.GetSearchBoundaries(this, point.CellMin, point.CellMax, searchSize);
+            
+                for (int y = searchBoundaries.StartY; y <= searchBoundaries.EndY; y++)
                 {
-                    int cellValue = Cells.GetCellValue(x, y);
-                    if (cellValue == pointCellIndex)
+                    for (int x = searchBoundaries.StartX; x <= searchBoundaries.EndX; x++)
                     {
-                        Cells.ClearCellValue(x, y);
+                        int cellValue = Cells.GetCellValue(x, y);
+                        if (cellValue == pointCellIndex)
+                        {
+                            Cells.ClearCellValue(x, y);
+                        }
                     }
                 }
             }
-
+            else
+            {
+                Cells.ClearCellValue(point.CellMin.x, point.CellMin.y);
+                Cells.ClearCellValue(point.CellMax.x, point.CellMax.y);
+                Cells.ClearCellValue(point.CellMin.x, point.CellMax.y);
+                Cells.ClearCellValue(point.CellMax.x, point.CellMin.y);
+            }
+            
             if (_emptyPointIndexes == null)
             {
                 _emptyPointIndexes = new Queue<int>();
             }
             
             _emptyPointIndexes.Enqueue(pointIndex);
+            
+            OnPointRemoved?.Invoke(this, point);
         }
         
-        public int TrySpawnPointFrom(PointGrid point, out PointGrid newPoint)
+        public Point TrySpawnPointFrom(Point point)
         {
-            for (var i = 0; i < PointProperties.Tries; i++)
+            for (var i = 0; i < GridProperties.Tries; i++)
             {
-                float candidateRadius = CreateCandidateRadius(i, PointProperties.Tries);
-                Candidate candidate = CreateCandidateFrom(point, candidateRadius);
-
-                if (IsCandidateInAABB(candidate))
+                PointSize candidateSize = _radiusSelector.GetRadius(i, GridProperties.Tries);
+                Candidate candidate = CreateCandidateFrom(point, candidateSize);
+                
+                Point newPoint = TryAddPoint(candidate);
+                if (newPoint != null)
                 {
-                    candidate.CellMax = Cells.CellFromWorldPosition(candidate.WorldPosition, 
-                        WorldToCellPositionMethod.Ceil);
-                    candidate.CellMin = Cells.CellFromWorldPosition(candidate.WorldPosition, 
-                        WorldToCellPositionMethod.Floor);
-
-                    // if (IsCandidateValid(candidate))
-                    if (CandidateValidator.IsValid(this, candidate, GetSearchSize(candidate.Radius)))
-                    {
-                        newPoint = CreatePoint(candidate);
-                        
-                        newPoint.CellMin = Cells.CellFromWorldPosition(
-                            worldPosition: newPoint.WorldPosition, 
-                            method: WorldToCellPositionMethod.Floor);
-            
-                        newPoint.CellMax = Cells.CellFromWorldPosition(
-                            worldPosition: newPoint.WorldPosition, 
-                            method: WorldToCellPositionMethod.Ceil);
-                        
-                        if (CustomBuilder != null)
-                        {
-                            if (!CustomBuilder.Build(  this, newPoint, i, PointProperties.Tries))
-                            {
-                                continue;
-                            }
-                        }
-                        
-                        StorePoint(newPoint);
-                        return _points.Count - 1;
-                    }
+                    return newPoint;
                 }
             }
-
-            newPoint = default;
-            return -1;
+        
+            return null;
         }
 
-        public bool AddPoint(PointGrid point)
+        public Point TryAddPoint(Candidate candidate)
         {
-            var candidate = new Candidate
-            {
-                Radius = point.Radius,
-                Margin = point.Margin,
-                WorldPosition = point.WorldPosition
-            };
-        
             if (IsCandidateInAABB(candidate))
             {
-                candidate.CellMax = Cells.CellFromWorldPosition(candidate.WorldPosition,
-                    WorldToCellPositionMethod.Ceil);
-                candidate.CellMin = Cells.CellFromWorldPosition(candidate.WorldPosition,
-                    WorldToCellPositionMethod.Floor);
-        
-                if (IsCandidateValid(candidate))
+                int searchSize = GetSearchSize(candidate.Radius + candidate.Margin);
+                
+                if (_candidateValidator.IsValid(this, candidate, searchSize))
                 {
-                    point.CellMin = Cells.CellFromWorldPosition(
-                        worldPosition: point.WorldPosition,
-                        method: WorldToCellPositionMethod.Floor);
-        
-                    point.CellMax = Cells.CellFromWorldPosition(
-                        worldPosition: point.WorldPosition,
-                        method: WorldToCellPositionMethod.Ceil);
-        
-                    if (CustomBuilder != null)
+                    var newPoint = new Point(worldPosition: candidate.WorldPosition,
+                        radius: candidate.Radius, margin: candidate.Margin)
                     {
-                        if (!CustomBuilder.Build(this, point, 0, PointProperties.Tries))
-                        {
-                            return false;
-                        }
-                    }
-        
-                    StorePoint(point);
-                    
-                    return true;
+                        CellMin = Cells.CellFromWorldPosition(
+                            worldPosition: candidate.WorldPosition,
+                            method: WorldToCellPositionMethod.Floor),
+                        CellMax = Cells.CellFromWorldPosition(
+                            worldPosition: candidate.WorldPosition,
+                            method: WorldToCellPositionMethod.Ceil)
+                    };
+
+                    StorePoint(newPoint);
+                    return newPoint;
                 }
             }
-        
-            return false;
+
+            return null;
         }
 
-        public HashSet<PointGrid> GetPointsAround(in PointGrid pointWorld, int region)
+        public HashSet<Point> GetPointsAround(in Point point, int region)
         {
-            HashSet<PointGrid> set = GetPointsAround(pointWorld.CellMin, pointWorld.CellMax, region);
-            set.Remove(pointWorld);
+            HashSet<Point> set = GetPointsAround(point.CellMin, point.CellMax, region);
+            set.Remove(point);
             return set;
         }
 
-        public HashSet<PointGrid> GetPointsAround(in Vector2Int cellMin, in Vector2Int cellMax, int region)
+        public HashSet<Point> GetPointsAround(in Vector2Int cellMin, in Vector2Int cellMax, int region)
         {
             var from = new Vector2Int(Mathf.Max(Cells.MinBound.x, cellMin.x - region),
                 Mathf.Max(Cells.MinBound.y, cellMin.y - region));
             var to = new Vector2Int(Mathf.Min(Cells.MaxBound.x, cellMax.x + region),
                 Mathf.Min(Cells.MaxBound.y, cellMax.y + region));
 
-            var result = new HashSet<PointGrid>();
+            var result = new HashSet<Point>();
 
             for (int y = from.y; y < to.y; y++)
             {
@@ -229,7 +154,7 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
                 {
                     if(Cells.IsCellEmpty(x, y)) continue;
 
-                    PointGrid point = _points[Cells.GetCellValue(x, y) - 1];
+                    Point point = _points[Cells.GetCellValue(x, y) - 1];
                     result.Add(point);
                 }
             }
@@ -251,17 +176,13 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
 
         public void Clear()
         {
-            _points.Clear();
             Cells.Clear();
+            
+            _points.Clear();
+            _emptyPointIndexes?.Clear();
         }
 
-        protected virtual PointGrid CreatePoint(Candidate candidate)
-        {
-            return new PointGrid(worldPosition: candidate.WorldPosition,
-                radius: candidate.Radius, margin: candidate.Margin);
-        }
-
-        protected bool IsCandidateInAABB(in Candidate candidate)
+        protected virtual bool IsCandidateInAABB(in Candidate candidate)
         {
             if (GridProperties.PointsLocation == PointsLocation.CenterInsideGrid)
             {
@@ -279,18 +200,14 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
             }
             
             return Cells.IsPositionInAABB(new Vector3(
-                       candidate.WorldPosition.x - candidate.FullRadius,
-                       candidate.WorldPosition.y - candidate.FullRadius)) &&
+                       candidate.WorldPosition.x - candidate.Radius + candidate.Margin,
+                       candidate.WorldPosition.y - candidate.Radius + candidate.Margin)) &&
                    Cells.IsPositionInAABB(new Vector3(
-                       candidate.WorldPosition.x + candidate.FullRadius,
-                       candidate.WorldPosition.y + candidate.FullRadius));
+                       candidate.WorldPosition.x + candidate.Radius + candidate.Margin,
+                       candidate.WorldPosition.y + candidate.Radius + candidate.Margin));
         }
         
-        protected abstract float CreateCandidateRadius(int currentTry, int maxTries);
-        
-        public PointGrid GetPointByIndex(int pointIndex) => _points[pointIndex - 1];
-        
-        protected int StorePoint(PointGrid point)
+        protected virtual void StorePoint(Point point)
         {
             int pointIndex;
             
@@ -305,34 +222,25 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
                 pointIndex = _points.Count - 1;
             }
             
-            OnPointCreatedInternal(point, pointIndex + 1);
+            point.Index = pointIndex;
             
-            OnPointCreated?.Invoke((TSelf) this, point);
+            FillGridValues(point, pointIndex + 1);
             
-            return pointIndex;
+            OnPointCreated?.Invoke(this, point);
         }
         
-        protected virtual void OnPointCreatedInternal(in PointGrid point, int pointCellIndex)
+        private void FillGridValues(in Point point, int pointCellIndex)
         {
-            Cells.SetCellValue(point.CellMin.x, point.CellMin.y, pointCellIndex);
-            Cells.SetCellValue(point.CellMax.x, point.CellMax.y, pointCellIndex);
-            Cells.SetCellValue(point.CellMin.x, point.CellMax.y, pointCellIndex);
-            Cells.SetCellValue(point.CellMax.x, point.CellMin.y, pointCellIndex);
-
             if (GridProperties.FillCellsInsidePoint)
             {
-                int searchSize = Mathf.RoundToInt((point.FullRadius) / GridProperties.CellSize);
-                
-                int startX = Mathf.Max(Cells.MinBound.x, point.CellMin.x - searchSize);
-                int endX = Mathf.Min(point.CellMax.x + searchSize, Cells.MaxBound.x - 1);
-                int startY = Mathf.Max(Cells.MinBound.y, point.CellMin.y - searchSize);
-                int endY = Mathf.Min(point.CellMax.y + searchSize, Cells.MaxBound.y - 1);
+                int searchSize = Mathf.RoundToInt((point.Radius + point.Margin) / GridProperties.CellSize);
+                SearchBoundaries searchBoundaries = Helper.GetSearchBoundaries(this, point.CellMin, point.CellMax, searchSize);
             
-                float sqrtRad = Mathf.Pow(point.FullRadius, 2);
-                for (int y = startY; y <= endY; y++)
+                float sqrtRad = Mathf.Pow(point.Radius + point.Margin, 2);
+                for (int y = searchBoundaries.StartY; y <= searchBoundaries.EndY; y++)
                 {
                     float cellY = GridProperties.CellSize * y + GridProperties.PositionOffset.y;
-                    for (int x = startX; x <= endX; x++)
+                    for (int x = searchBoundaries.StartX; x <= searchBoundaries.EndX; x++)
                     {
                         if (Cells.GetCellValue(x, y) == 0)
                         {
@@ -354,7 +262,7 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
             }
         }
         
-        private bool IsInsideCircle(PointGrid point, float sqrtRad, float x, float y)
+        private bool IsInsideCircle(Point point, float sqrtRad, float x, float y)
         {
             double dx = x - point.WorldPosition.x;
             double dy = y - point.WorldPosition.y;
@@ -362,50 +270,32 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
             return distanceSquared < sqrtRad;
         }
         
-        private Candidate CreateCandidateFrom(PointGrid point, float candidateRadius)
+        private Candidate CreateCandidateFrom(Point point, PointSize candidateSize)
         {
             Vector3 candidatePosition = Helper
                 .GetCandidateRandomWorldPosition(
                     spawnWorldPosition: point.WorldPosition,
-                    spawnerRadius: point.FullRadius,
-                    candidateRadius: candidateRadius + PointProperties.PointMargin);
+                    spawnerRadius: point.Radius + point.Margin,
+                    candidateRadius: candidateSize.Radius + candidateSize.Margin + GridProperties.PointMargin);
             
             return new Candidate
             {
                 WorldPosition = candidatePosition,
-                Radius = candidateRadius,
-                Margin = PointProperties.PointMargin
+                Radius = candidateSize.Radius,
+                Margin = candidateSize.Margin + GridProperties.PointMargin
             };
-        }
-        
-        private bool IsCandidateValid(Candidate candidate)
-        {
-            int searchSize = GetSearchSize(candidate.Radius);
-            
-            int startX = Mathf.Max(Cells.MinBound.x, candidate.CellMin.x - searchSize);
-            int endX = Mathf.Min(candidate.CellMax.x + searchSize, Cells.MaxBound.x - 1);
-            int startY = Mathf.Max(Cells.MinBound.y, candidate.CellMin.y - searchSize);
-            int endY = Mathf.Min(candidate.CellMax.y + searchSize, Cells.MaxBound.y - 1);
-            
-            for (int y = startY; y <= endY; y++)
-            {
-                for (int x = startX; x <= endX; x++)
-                {
-                    int pointIndex = Cells.GetCellValue(x, y);
-                    if (pointIndex == 0) continue;
-
-                    PointGrid existingPoint = GetPointByIndex(pointIndex);
-                    if (candidate.IsIntersectWithPoint(existingPoint))
-                    {
-                        return false;
-                    } 
-                }
-            }
-
-            return true;
         }
         
         private int GetSearchSize(float pointRadius) => 
             Mathf.Max(3, Mathf.CeilToInt(pointRadius / GridProperties.CellSize));
+
+        private IEnumerable<Point> GetPointsIEnumerable()
+        {
+            foreach (Point point in _points)
+            {
+                if(point != null)
+                    yield return point;
+            }
+        }
     }
 }

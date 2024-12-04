@@ -5,6 +5,8 @@ using System.Linq;
 using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Builders;
 using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids;
 using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Models;
+using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Properties;
+using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Properties.Points;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 using Random = UnityEngine.Random;
@@ -28,17 +30,17 @@ namespace andromeda_poisson_disk_sampling.Demo2
         
         private bool _trigger;
 
-        private GridStaticUnlimited _grid;
+        private IGrid _grid;
         private List<PointSphere> _spheres;
 
-        private Queue<PointGrid> _queue;
+        private Queue<Point> _queue;
         private int _pointsToCreate;
         
         private void Awake()
         {
             _trigger = Trigger;
             _spheres = new List<PointSphere>();
-            _queue = new Queue<PointGrid>();
+            _queue = new Queue<Point>();
         }
 
         private void Do()
@@ -51,16 +53,20 @@ namespace andromeda_poisson_disk_sampling.Demo2
             _pointsToCreate = PointToCreate;
             _spheres.Clear();
             _queue.Clear();
-            _grid = (GridStaticUnlimited) new GridUnlimitedBuilderConstRadius()
-                .WithPointProperties(x => x
-                    .WithRadius(Radius)
-                    .WithTries(Tries)
-                    .WithMargin(PointMargin))
-                .WithGridProperties(gridPros => gridPros
-                    .WithSize(Size)
-                    .WithPointsLocation(PointsLocation)
-                    .WithPositionOffset(PositionOffset)
-                )
+            _grid = new GridBuilderConstRadius()
+                .IsUnlimited(true)
+                .WithPointProperties(new PointPropertiesConstRadius
+                {
+                    Radius = Radius,
+                    PointMargin = PointMargin,
+                })
+                .WithGridProperties(grid =>
+                {
+                    grid.Size = Size;
+                    grid.PointsLocation = PointsLocation;
+                    grid.PositionOffset = PositionOffset;
+                    grid.Tries = Tries;
+                })
                 .Build();
             
             transform.position = PositionOffset;
@@ -78,12 +84,13 @@ namespace andromeda_poisson_disk_sampling.Demo2
             
             Vector3 fakeWorldPosition = new Vector3(
                 x: _grid.GridProperties.Size.x / 2f, 
-                y: _grid.GridProperties.Size.y / 2f) + _grid.GridProperties.PositionOffset;
+                y: _grid.GridProperties.Size.y / 2f) + 
+                    _grid.GridProperties.PositionOffset;
 
-            var fakePoint = new PointGrid(fakeWorldPosition, _grid.PointProperties.Radius, 0);
+            var fakePoint = new Point(fakeWorldPosition, Radius, 0);
 
             Color color = Random.ColorHSV();
-            _grid.TrySpawnPointFrom(fakePoint, out var cp0);
+            var cp0 = _grid.TrySpawnPointFrom(fakePoint);
             _queue.Enqueue(cp0);
             
             PointSphere mb1 = Instantiate(Pref, transform, true);
@@ -93,8 +100,9 @@ namespace andromeda_poisson_disk_sampling.Demo2
             
             while (_queue.Count > 0)
             {
-                PointGrid p = _queue.Dequeue();
-                while (_grid.TrySpawnPointFrom(p, out var cp) > -1)
+                Point p = _queue.Dequeue();
+                var cp = _grid.TrySpawnPointFrom(p);
+                while (cp != null)
                 {
                     _pointsToCreate--;
                     _queue.Enqueue(cp);
@@ -119,7 +127,7 @@ namespace andromeda_poisson_disk_sampling.Demo2
             Camera.main.transform.position = _grid.GridProperties.Center;
         }
 
-        private void GridOnOnPointCreated(GridStaticUnlimited grid, PointGrid point)
+        private void GridOnOnPointCreated(IGrid grid, Point point)
         {
             // PointSphere mb = Instantiate(Pref, transform, true);
             // mb.Init(point, grid);

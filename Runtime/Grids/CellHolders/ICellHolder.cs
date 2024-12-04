@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Models;
 using UnityEngine;
 
-namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
+namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids.CellHolders
 {
     public interface ICellHolder
     {
@@ -25,6 +25,6 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
         
         void Clear();
 
-        IEnumerable<CellValue> Values();
+        IEnumerable<CellValue> GetValues();
     }
 }
