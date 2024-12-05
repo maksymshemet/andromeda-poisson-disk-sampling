@@ -28,7 +28,7 @@ namespace andromeda_poisson_disk_sampling.Demo2
         public bool Trigger;
         private bool _trigger;
 
-        private IGrid _grid;
+        private IDPSGrid _grid;
         private List<PointSphere> _spheres;
         
         private void Awake()
@@ -102,7 +102,7 @@ namespace andromeda_poisson_disk_sampling.Demo2
                 Margin = PointMargin
             };
             
-            Point point = _grid.TryAddPoint(candidate);
+            DPSPoint point = _grid.TryAddPoint(candidate);
             if (point == null)
             {
                 throw new Exception("Couldn't spawn the point");
@@ -114,7 +114,7 @@ namespace andromeda_poisson_disk_sampling.Demo2
             {
                 int spawnIndex = Random.Range(0, spawnPoints.Count);
                 int spawnPointIndex = spawnPoints[spawnIndex];
-                Point spawnPoint = _grid.GetPointByIndex(spawnPointIndex);
+                DPSPoint spawnPoint = _grid.GetPointByIndex(spawnPointIndex);
                 
                 point = _grid.TrySpawnPointFrom(spawnPoint);
                 if (point != null)
@@ -134,10 +134,10 @@ namespace andromeda_poisson_disk_sampling.Demo2
             while (spawnPoints.Count > 0);
         }
 
-        private void GridOnOnPointCreated(IGrid grid, Point point)
+        private void GridOnOnPointCreated(DPSPoint point)
         {
             PointSphere mb = Instantiate(Pref, transform, true);
-            mb.Init(point, grid);
+            mb.Init(point, _grid);
             _spheres.Add(mb);
         }
 

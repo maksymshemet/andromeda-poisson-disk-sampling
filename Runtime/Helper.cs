@@ -30,14 +30,14 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static SearchBoundaries GetSearchBoundaries(in IGrid grid, Vector2Int cellMin, Vector2Int cellMax, int region)
+        public static SearchBoundaries GetSearchBoundaries(in IDPSGridConfig gridConfig, Vector2Int cellMin, Vector2Int cellMax, int region)
         {
             return new SearchBoundaries
             {
-                StartX = Mathf.Max(grid.Cells.MinBound.x, cellMin.x - region),
-                EndX = Mathf.Min(cellMax.x + region, grid.Cells.MaxBound.x - 1),
-                StartY = Mathf.Max(grid.Cells.MinBound.y, cellMin.y - region),
-                EndY = Mathf.Min(cellMax.y + region, grid.Cells.MaxBound.y - 1),
+                StartX = Mathf.Max(gridConfig.Cells.MinBound.x, cellMin.x - region),
+                EndX = Mathf.Min(cellMax.x + region, gridConfig.Cells.MaxBound.x - 1),
+                StartY = Mathf.Max(gridConfig.Cells.MinBound.y, cellMin.y - region),
+                EndY = Mathf.Min(cellMax.y + region, gridConfig.Cells.MaxBound.y - 1),
             };
         }
         

@@ -11,8 +11,8 @@ namespace andromeda_poisson_disk_sampling.Demo2
     {
         public Color PointColor { get; set; }
         
-        private Point _point;
-        private IGrid _grid;
+        private DPSPoint _point;
+        private IDPSGrid _grid;
         
         public Color RadiusColor = Color.green;
         public Color RadiusColorSelected = new Color(0.01851193f, 0.3018868f,0.05279091f, 1);
@@ -55,7 +55,7 @@ namespace andromeda_poisson_disk_sampling.Demo2
         //     _gridProperties = grid.GridProperties;
         // }
         
-        public void Init(Point point, IGrid grid)
+        public void Init(DPSPoint point, IDPSGrid grid)
         {
             name = $"[{point.WorldPosition}]";
             transform.position = point.WorldPosition;

@@ -4,6 +4,6 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids.CandidateVali
 {
     public interface ICandidateValidator
     {
-        public bool IsValid(IGrid grid, Candidate candidate, int searchSize);
+        public bool IsValid(IDPSGridConfig gridConfig, Candidate candidate, int searchSize);
     }
 }

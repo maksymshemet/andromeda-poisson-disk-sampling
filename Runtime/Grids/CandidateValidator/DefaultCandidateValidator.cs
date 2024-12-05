@@ -5,15 +5,15 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids.CandidateVali
 {
     public class DefaultCandidateValidator : ICandidateValidator
     {
-        public virtual bool IsValid(IGrid grid, Candidate candidate, int searchSize)
+        public virtual bool IsValid(IDPSGridConfig gridConfig, Candidate candidate, int searchSize)
         {
-            Vector2Int cellMin = grid.Cells.CellFromWorldPosition(candidate.WorldPosition,
+            Vector2Int cellMin = gridConfig.Cells.CellFromWorldPosition(candidate.WorldPosition,
                 WorldToCellPositionMethod.Floor);
-            Vector2Int cellMax = grid.Cells.CellFromWorldPosition(candidate.WorldPosition,
+            Vector2Int cellMax = gridConfig.Cells.CellFromWorldPosition(candidate.WorldPosition,
                 WorldToCellPositionMethod.Ceil);
             
             SearchBoundaries searchBoundaries = Helper
-                .GetSearchBoundaries(grid, cellMin, cellMax, searchSize);
+                .GetSearchBoundaries(gridConfig, cellMin, cellMax, searchSize);
             
             int startY = searchBoundaries.StartY;
             int endY = searchBoundaries.EndY;
@@ -26,10 +26,10 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids.CandidateVali
                 while (startX <= endX && endX >= startX)
                 {
                     if (
-                        IsIntersect(startX, startY)
-                        || IsIntersect(startX, endY)
-                        || IsIntersect(endX, startY)
-                        || IsIntersect(endX, endY)
+                        gridConfig.IsPositionFree(candidate, startX, startY)
+                        || gridConfig.IsPositionFree(candidate,startX, endY)
+                        || gridConfig.IsPositionFree(candidate,endX, startY)
+                        || gridConfig.IsPositionFree(candidate,endX, endY)
                         )
                     {
                         return false;
@@ -44,15 +44,6 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids.CandidateVali
             }
 
             return true;
-
-            bool IsIntersect(int x, int y)
-            {
-                int pointIndex = grid.Cells.GetCellValue(x, y);
-                if (pointIndex == 0) return false;
-
-                Point existingPoint = grid.GetPointByIndex(pointIndex);
-                return candidate.IsIntersectWithPoint(existingPoint);
-            }
         }
     }
 }

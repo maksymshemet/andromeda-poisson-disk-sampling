@@ -6,8 +6,8 @@ namespace andromeda_poisson_disk_sampling.Demo2
 {
     public class PointMultiRadSphere : MonoBehaviour
     {
-        private Point _point;
-        private IGrid _grid;
+        private DPSPoint _point;
+        private IDPSGrid _grid;
         
         public Color RadiusColor = Color.green;
         public Color RadiusColorSelected = new Color(0.01851193f, 0.3018868f,0.05279091f, 1);
@@ -36,7 +36,7 @@ namespace andromeda_poisson_disk_sampling.Demo2
         public Color SearchRangeColor = Color.yellow;
         public float SearchRangeRadius = 0.16f;
         
-        public void Init(Point point, IGrid grid)
+        public void Init(DPSPoint point, IDPSGrid grid)
         {
             name = $"[{point.WorldPosition}] r{point.Radius}";
             transform.position = point.WorldPosition;
@@ -117,7 +117,7 @@ namespace andromeda_poisson_disk_sampling.Demo2
             {
                 for (var x = 0; x < _grid.GridProperties.CellLenghtX; x++)
                 {
-                    Point point = _grid.GetPoint(x, y);
+                    DPSPoint point = _grid.GetPoint(x, y);
                     if (point != null && point.Equals(_point))
                     {
                         Gizmos.DrawSphere(new Vector3(

@@ -50,7 +50,5 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Builders
             IsGridUnlimited = isUnlimited;
             return (TSelf) this;
         }
-                
-        public abstract IGrid Build();
     }
 }

@@ -2,26 +2,19 @@ using UnityEngine;
 
 namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Models
 {
-    public class Point
+    public class DPSPoint : IDPSPoint
     {
-        public int Index;
-        public Vector2Int CellMin;
-        public Vector2Int CellMax;
+        public int Index { get; set; }
+        public Vector2Int CellMin { get; set; }
+        public Vector2Int CellMax { get; set; }
         
-        public readonly Vector3 WorldPosition;
-        public readonly float Radius;
-        public readonly float Margin;
-        
-        public Point(Vector3 worldPosition, float radius, float margin)
-        {
-            WorldPosition = worldPosition;
-            Radius = radius;
-            Margin = margin;
-        }
+        public Vector3 WorldPosition { get; set; }
+        public float Radius { get; set; }
+        public float Margin { get; set; }
         
         public override bool Equals(object obj)
         {
-            if (obj is Point point)
+            if (obj is DPSPoint point)
             {
                 return Index.Equals(point.Index)
                        && Radius.Equals(point.Radius) 

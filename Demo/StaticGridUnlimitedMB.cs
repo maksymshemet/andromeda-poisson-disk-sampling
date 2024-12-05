@@ -30,17 +30,17 @@ namespace andromeda_poisson_disk_sampling.Demo2
         
         private bool _trigger;
 
-        private IGrid _grid;
+        private IDPSGrid _grid;
         private List<PointSphere> _spheres;
 
-        private Queue<Point> _queue;
+        private Queue<DPSPoint> _queue;
         private int _pointsToCreate;
         
         private void Awake()
         {
             _trigger = Trigger;
             _spheres = new List<PointSphere>();
-            _queue = new Queue<Point>();
+            _queue = new Queue<DPSPoint>();
         }
 
         private void Do()
@@ -87,7 +87,11 @@ namespace andromeda_poisson_disk_sampling.Demo2
                 y: _grid.GridProperties.Size.y / 2f) + 
                     _grid.GridProperties.PositionOffset;
 
-            var fakePoint = new Point(fakeWorldPosition, Radius, 0);
+            var fakePoint = new DPSPoint
+            {
+                WorldPosition = fakeWorldPosition,
+                Radius = Radius
+            };
 
             Color color = Random.ColorHSV();
             var cp0 = _grid.TrySpawnPointFrom(fakePoint);
@@ -100,7 +104,7 @@ namespace andromeda_poisson_disk_sampling.Demo2
             
             while (_queue.Count > 0)
             {
-                Point p = _queue.Dequeue();
+                DPSPoint p = _queue.Dequeue();
                 var cp = _grid.TrySpawnPointFrom(p);
                 while (cp != null)
                 {
@@ -127,7 +131,7 @@ namespace andromeda_poisson_disk_sampling.Demo2
             Camera.main.transform.position = _grid.GridProperties.Center;
         }
 
-        private void GridOnOnPointCreated(IGrid grid, Point point)
+        private void GridOnOnPointCreated(DPSPoint point)
         {
             // PointSphere mb = Instantiate(Pref, transform, true);
             // mb.Init(point, grid);
