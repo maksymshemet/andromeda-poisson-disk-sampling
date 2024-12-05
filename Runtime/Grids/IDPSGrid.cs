@@ -17,30 +17,6 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
     
     public interface IDPSGrid : IDPSGrid<DPSPoint>
     {
-        // event Action<IDPSGrid, IDPSPoint> OnPointCreated;
-        // event Action<IDPSGrid, IDPSPoint> OnPointRemoved;
-        //
-        // ICellHolder Cells { get; }
-        // GridProperties GridProperties { get; }
-        //
-        // IEnumerable<IDPSPoint> Points { get; }
-        // int PointsCount { get; }
-        //
-        // IDPSPoint GetPoint(int x, int y);
-        // IDPSPoint GetPointByIndex(int pointIndex);
-        //
-        // HashSet<IDPSPoint> GetPointsAround(in IDPSPoint point, int region);
-        // HashSet<IDPSPoint> GetPointsAround(in Vector2Int cellMin, in Vector2Int cellMax, int region);
-        //
-        // DPSPoint TrySpawnPointFrom(IDPSPoint point);
-        // DPSPoint TryAddPoint(Candidate candidate);
-        //
-        // void RemovePoint(IDPSPoint point);
-        //
-        // Vector2 CellToWorldCoordinate(in Vector2Int cell);
-        // Vector2 CellToWorldCoordinate(int x, int y);
-        //
-        // void Clear();
     }
 
     public interface IDPSGrid<TPoint> : IDPSGridConfig where TPoint : DPSPoint, new()
@@ -56,7 +32,8 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
         
         HashSet<TPoint> GetPointsAround(in TPoint point, int region);
         HashSet<TPoint> GetPointsAround(in Vector2Int cellMin, in Vector2Int cellMax, int region);
-        
+
+        void StorePoint(TPoint point);
         TPoint TrySpawnPointFrom(TPoint point);
         TPoint TryAddPoint(Candidate candidate);
         

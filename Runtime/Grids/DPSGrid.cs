@@ -222,7 +222,7 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
                        candidate.WorldPosition.y + candidate.Radius + candidate.Margin));
         }
         
-        protected virtual void StorePoint(TPoint point)
+        public virtual void StorePoint(TPoint point)
         {
             int pointIndex;
             

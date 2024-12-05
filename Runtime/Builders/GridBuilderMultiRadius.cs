@@ -27,7 +27,7 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Builders
         }
     }
     
-    public class GridBuilderMultiRadius<T> : GridBuilder<PointPropertiesMultiRadius, GridBuilderMultiRadius>
+    public class GridBuilderMultiRadius<T> : GridBuilder<PointPropertiesMultiRadius, GridBuilderMultiRadius<T>>
         where T : DPSPoint, new()
     {
         public IDPSGrid<T> Build()

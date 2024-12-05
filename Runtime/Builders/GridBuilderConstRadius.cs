@@ -28,7 +28,7 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Builders
         }
     }
     
-    public class GridBuilderConstRadius<T> : GridBuilder<PointPropertiesConstRadius, GridBuilderConstRadius> 
+    public class GridBuilderConstRadius<T> : GridBuilder<PointPropertiesConstRadius, GridBuilderConstRadius<T>> 
         where T : DPSPoint, new()
     {
         public IDPSGrid<T> Build()
