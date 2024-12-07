@@ -54,7 +54,7 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
 
             if (GridProperties.FillCellsInsidePoint)
             {
-                int searchSize = GetSearchSize(point.Radius);
+                int searchSize = GetSearchSize(point.Size);
 
                 SearchBoundaries searchBoundaries = Helper.GetSearchBoundaries(this, point.CellMin, point.CellMax, searchSize);
             
@@ -109,15 +109,14 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
         {
             if (IsCandidateInAABB(candidate))
             {
-                int searchSize = GetSearchSize(candidate.Radius + candidate.Margin);
+                int searchSize = GetSearchSize(candidate.Size);
                 
                 if (_candidateValidator.IsValid(this, candidate, searchSize))
                 {
                     var newPoint = new TPoint
                     {
                         WorldPosition = candidate.WorldPosition,
-                        Radius = candidate.Radius,
-                        Margin = candidate.Margin,
+                        Size = candidate.Size,
                         CellMin = Cells.CellFromWorldPosition(
                             worldPosition: candidate.WorldPosition,
                             method: WorldToCellPositionMethod.Floor),
@@ -192,8 +191,9 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
             TPoint existingPoint = GetPointByIndex(pointIndex);
             
             float sqrDst = (existingPoint.WorldPosition - candidate.WorldPosition).sqrMagnitude;
-            float radius = existingPoint.Radius + existingPoint.Margin 
-                                                + candidate.Margin + candidate.Radius;
+            float radius = existingPoint.Size.Radius + existingPoint.Size.Margin 
+                                                + candidate.Size.Margin + candidate.Size.Radius 
+                                                + GridProperties.PointMargin + GridProperties.PointMargin;
             return sqrDst < (radius * radius);
         }
 
@@ -207,19 +207,20 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
             if (GridProperties.PointsLocation == PointsLocation.PointInsideGrid)
             {
                 return Cells.IsPositionInAABB(new Vector3(
-                           candidate.WorldPosition.x - candidate.Radius,
-                           candidate.WorldPosition.y - candidate.Radius)) &&
+                           candidate.WorldPosition.x - candidate.Size.Radius,
+                           candidate.WorldPosition.y - candidate.Size.Radius)) &&
                        Cells.IsPositionInAABB(new Vector3(
-                           candidate.WorldPosition.x + candidate.Radius,
-                           candidate.WorldPosition.y + candidate.Radius));
+                           candidate.WorldPosition.x + candidate.Size.Radius,
+                           candidate.WorldPosition.y + candidate.Size.Radius));
             }
             
+            float fullRadius = candidate.Size.Radius + candidate.Size.Margin + GridProperties.PointMargin;
             return Cells.IsPositionInAABB(new Vector3(
-                       candidate.WorldPosition.x - candidate.Radius + candidate.Margin,
-                       candidate.WorldPosition.y - candidate.Radius + candidate.Margin)) &&
+                       candidate.WorldPosition.x - fullRadius,
+                       candidate.WorldPosition.y - fullRadius)) &&
                    Cells.IsPositionInAABB(new Vector3(
-                       candidate.WorldPosition.x + candidate.Radius + candidate.Margin,
-                       candidate.WorldPosition.y + candidate.Radius + candidate.Margin));
+                       candidate.WorldPosition.x + fullRadius,
+                       candidate.WorldPosition.y + fullRadius));
         }
         
         public virtual void StorePoint(TPoint point)
@@ -248,10 +249,11 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
         {
             if (GridProperties.FillCellsInsidePoint)
             {
-                int searchSize = Mathf.RoundToInt((point.Radius + point.Margin) / GridProperties.CellSize);
+                float fullRadius = point.Size.Radius + point.Size.Margin + GridProperties.PointMargin;
+                int searchSize = Mathf.RoundToInt(fullRadius / GridProperties.CellSize);
                 SearchBoundaries searchBoundaries = Helper.GetSearchBoundaries(this, point.CellMin, point.CellMax, searchSize);
             
-                float sqrtRad = Mathf.Pow(point.Radius + point.Margin, 2);
+                float sqrtRad = fullRadius * fullRadius;
                 for (int y = searchBoundaries.StartY; y <= searchBoundaries.EndY; y++)
                 {
                     float cellY = GridProperties.CellSize * y + GridProperties.PositionOffset.y;
@@ -290,19 +292,18 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
             Vector3 candidatePosition = Helper
                 .GetCandidateRandomWorldPosition(
                     spawnWorldPosition: point.WorldPosition,
-                    spawnerRadius: point.Radius + point.Margin,
+                    spawnerRadius: point.Size.Radius + point.Size.Margin + GridProperties.PointMargin,
                     candidateRadius: candidateSize.Radius + candidateSize.Margin + GridProperties.PointMargin);
             
             return new Candidate
             {
                 WorldPosition = candidatePosition,
-                Radius = candidateSize.Radius,
-                Margin = candidateSize.Margin + GridProperties.PointMargin
+                Size = candidateSize
             };
         }
         
-        private int GetSearchSize(float pointRadius) => 
-            Mathf.Max(3, Mathf.CeilToInt(pointRadius / GridProperties.CellSize));
+        private int GetSearchSize(PointSize size) => 
+            Mathf.Max(3, Mathf.CeilToInt((size.Margin + size.Radius + GridProperties.PointMargin) / GridProperties.CellSize));
 
         private IEnumerable<TPoint> GetPointsIEnumerable()
         {

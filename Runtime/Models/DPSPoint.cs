@@ -7,18 +7,16 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Models
         public int Index { get; set; }
         public Vector2Int CellMin { get; set; }
         public Vector2Int CellMax { get; set; }
-        
         public Vector3 WorldPosition { get; set; }
-        public float Radius { get; set; }
-        public float Margin { get; set; }
+        public PointSize Size { get; set; }
         
         public override bool Equals(object obj)
         {
             if (obj is DPSPoint point)
             {
                 return Index.Equals(point.Index)
-                       && Radius.Equals(point.Radius) 
-                       && Margin.Equals(point.Margin)
+                       && Size.Radius.Equals(point.Size.Radius) 
+                       && Size.Margin.Equals(point.Size.Margin)
                        && WorldPosition.Equals(point.WorldPosition);
             }
 
@@ -27,12 +25,12 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Models
 
         public override int GetHashCode()
         {
-            return (WorldPosition, Radius, Margin).GetHashCode();
+            return (WorldPosition, Size).GetHashCode();
         }
         
         public override string ToString()
         {
-            return $"PointGrid: wp{WorldPosition}, r{Radius} i{Index}";
+            return $"PointGrid: wp{WorldPosition}, r{Size.Radius} m{Size.Margin} i{Index}";
         }
     }
 }

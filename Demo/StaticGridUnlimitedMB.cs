@@ -90,7 +90,9 @@ namespace andromeda_poisson_disk_sampling.Demo2
             var fakePoint = new DPSPoint
             {
                 WorldPosition = fakeWorldPosition,
-                Radius = Radius
+                Size = new PointSize {
+                    Radius = Radius
+                }
             };
 
             Color color = Random.ColorHSV();

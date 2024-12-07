@@ -59,7 +59,7 @@ namespace andromeda_poisson_disk_sampling.Demo2
         {
             name = $"[{point.WorldPosition}]";
             transform.position = point.WorldPosition;
-            transform.localScale = new Vector3(point.Radius, point.Radius, point.Radius) * 2;
+            transform.localScale = new Vector3(point.Size.Radius, point.Size.Radius, point.Size.Radius) * 2;
 
             _point = point;
             _gridProperties = grid.GridProperties;
@@ -79,7 +79,7 @@ namespace andromeda_poisson_disk_sampling.Demo2
             if(CenterGizmosOnSelected) CenterFunc();
             
             Gizmos.color = RadiusColorSelected;
-            Gizmos.DrawWireSphere(transform.position, _point.Radius);
+            Gizmos.DrawWireSphere(transform.position, _point.Size.Radius);
         }
 
         private void OnDrawGizmos()
@@ -87,10 +87,10 @@ namespace andromeda_poisson_disk_sampling.Demo2
             if (_point == null) return;
             
             Gizmos.color = MarginColor;
-            Gizmos.DrawWireSphere(transform.position, _point.Radius + _point.Margin);
+            Gizmos.DrawWireSphere(transform.position, _point.Size.Radius + _point.Size.Margin);
             
             Gizmos.color = RadiusColor;
-            Gizmos.DrawWireSphere(transform.position, _point.Radius);
+            Gizmos.DrawWireSphere(transform.position, _point.Size.Radius);
             
             if(!GridCellsGizmosOnSelected) GridCellsShowFunc();
             if(!SpawnNewPointGizmosOnSelected) SpawnNewPointFunc();
@@ -163,8 +163,8 @@ namespace andromeda_poisson_disk_sampling.Demo2
 
             Gizmos.color = SpawnNewPointColor;
             
-            Gizmos.DrawWireSphere(transform.position, _point.Radius * 2);
-            Gizmos.DrawWireSphere(transform.position, _point.Radius * 3);
+            Gizmos.DrawWireSphere(transform.position, _point.Size.Radius * 2);
+            Gizmos.DrawWireSphere(transform.position, _point.Size.Radius * 3);
         }
     }
 }

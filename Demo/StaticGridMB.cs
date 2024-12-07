@@ -98,8 +98,11 @@ namespace andromeda_poisson_disk_sampling.Demo2
 
             var candidate = new Candidate{
                 WorldPosition=fakeWorldPosition, 
-                Radius = Radius, 
-                Margin = PointMargin
+                Size = new PointSize
+                {
+                    Radius = Radius, 
+                    Margin = PointMargin
+                }
             };
             
             DPSPoint point = _grid.TryAddPoint(candidate);

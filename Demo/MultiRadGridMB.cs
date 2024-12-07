@@ -103,6 +103,7 @@ namespace andromeda_poisson_disk_sampling.Demo2
                     grid.PointsLocation = PointsLocation;
                     grid.PositionOffset = PositionOffset;
                     grid.Tries = Tries;
+                    grid.PointMargin = PointMargin;
                 });
 
             _grid = builder.Build();
@@ -143,8 +144,10 @@ namespace andromeda_poisson_disk_sampling.Demo2
 
             var candidate = new Candidate{
                 WorldPosition=fakeWorldPosition, 
-                Radius = UsePredefinedRadii ? PredefinedRadii[0].Radius : MinRadius, 
-                Margin = UsePredefinedRadii ? PredefinedRadii[0].Margin : PointMargin
+                Size = new PointSize {
+                    Radius = UsePredefinedRadii ? PredefinedRadii[0].Radius : MinRadius, 
+                    Margin = UsePredefinedRadii ? PredefinedRadii[0].Margin : PointMargin
+                }
             };
             
             DPSPoint point = _grid.TryAddPoint(candidate);
@@ -217,21 +220,34 @@ namespace andromeda_poisson_disk_sampling.Demo2
             
             float width = _grid.GridProperties.CellSize + _grid.GridProperties.CellLenghtX;
             float height = _grid.GridProperties.CellSize + _grid.GridProperties.CellLenghtY;
-
+            
+            Bounds bounds = new Bounds(_grid.GridProperties.Center - PositionOffset, _grid.GridProperties.Size);
+            
             for (var x = 0; x < _grid.GridProperties.CellLenghtX; x++)
             {
-                var from = new Vector2(PositionOffset.x + offsetX * x, PositionOffset.y);
-                var to = new Vector2(PositionOffset.x + offsetX * x, PositionOffset.y + height);
-            
+                // var from = new Vector2(PositionOffset.x + offsetX * x, PositionOffset.y);
+                // var to = new Vector2(PositionOffset.x + offsetX * x, PositionOffset.y + height);
+                //
+                // Gizmos.DrawLine(@from, to);
+                
+                var from = new Vector2(bounds.min.x + offsetX * x, bounds.min.y);
+                var to = new Vector2(bounds.min.x + offsetX * x, bounds.max.y);
+                
                 Gizmos.DrawLine(@from, to);
             }
 
             for (var y = 0; y < _grid.GridProperties.CellLenghtY; y++)
             {
-                var from = new Vector2(PositionOffset.x, PositionOffset.y + offsetY * y);
-                var to = new Vector2(PositionOffset.x + width, PositionOffset.y + offsetY * y);
-            
+                // var from = new Vector2(PositionOffset.x, PositionOffset.y + offsetY * y);
+                // var to = new Vector2(PositionOffset.x + width, PositionOffset.y + offsetY * y);
+                //
+                // Gizmos.DrawLine(@from, to);
+                
+                var from = new Vector2(bounds.min.x, bounds.min.y + offsetY * y);
+                var to = new Vector2(bounds.max.x, bounds.min.y + offsetY * y);
+                
                 Gizmos.DrawLine(@from, to);
+                
             }
             
         }

@@ -30,22 +30,14 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.RadiiSelectors.Mult
             };
 
             if(_radiusProperties.RadiusPerTryCurve == null)
-                return new PointSize
-                {
-                    Radius = newRadius.Radius,
-                    Margin = newRadius.Margin
-                };
+                return newRadius;
             
             float adjustPercent = _radiusProperties.RadiusPerTryCurve
                 .Evaluate((float) currentTry / maxTries);
       
             newRadius = _radiusProperties.PredefinedRadii.Closest((newRadius.Radius + newRadius.Margin) * adjustPercent);
             
-            return new PointSize
-            {
-                Radius = newRadius.Radius,
-                Margin = newRadius.Margin
-            };
+            return newRadius;
         }
     }
 }

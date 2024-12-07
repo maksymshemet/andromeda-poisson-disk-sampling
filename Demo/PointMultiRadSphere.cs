@@ -1,3 +1,4 @@
+using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime;
 using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids;
 using DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Models;
 using UnityEngine;
@@ -12,6 +13,7 @@ namespace andromeda_poisson_disk_sampling.Demo2
         public Color RadiusColor = Color.green;
         public Color RadiusColorSelected = new Color(0.01851193f, 0.3018868f,0.05279091f, 1);
         public Color MarginColor = Color.magenta;
+        public Color MarginPlusGridColor = new Color(1, 0.3018868f,0.05279091f, 1);
         
         [Header("Center")]
         public bool CenterGizmosOnSelected = true;
@@ -38,9 +40,9 @@ namespace andromeda_poisson_disk_sampling.Demo2
         
         public void Init(DPSPoint point, IDPSGrid grid)
         {
-            name = $"[{point.WorldPosition}] r{point.Radius}";
+            name = $"[{point.WorldPosition}] r{point.Size.Radius}";
             transform.position = point.WorldPosition;
-            transform.localScale = new Vector3(point.Radius, point.Radius, point.Radius) * 2;
+            transform.localScale = new Vector3(point.Size.Radius, point.Size.Radius, point.Size.Radius) * 2;
 
             _point = point;
             _grid = grid;
@@ -56,7 +58,7 @@ namespace andromeda_poisson_disk_sampling.Demo2
             if(CenterGizmosOnSelected) CenterFunc();
             
             Gizmos.color = RadiusColorSelected;
-            Gizmos.DrawWireSphere(transform.position, _point.Radius);
+            Gizmos.DrawWireSphere(transform.position, _point.Size.Radius);
         }
 
         private void OnDrawGizmos()
@@ -64,10 +66,13 @@ namespace andromeda_poisson_disk_sampling.Demo2
             if (_point == null) return;
             
             Gizmos.color = MarginColor;
-            Gizmos.DrawWireSphere(transform.position, _point.Radius + _point.Margin);
+            Gizmos.DrawWireSphere(transform.position, _point.Size.Radius + _point.Size.Margin);
+            
+            Gizmos.color = MarginPlusGridColor;
+            Gizmos.DrawWireSphere(transform.position, _point.Size.Radius  + _point.Size.Margin + _grid.GridProperties.PointMargin);
             
             Gizmos.color = RadiusColor;
-            Gizmos.DrawWireSphere(transform.position, _point.Radius);
+            Gizmos.DrawWireSphere(transform.position, _point.Size.Radius);
             
             if(!GridCellsGizmosOnSelected) GridCellsShowFunc();
             if(!SpawnNewPointGizmosOnSelected) SpawnNewPointFunc();
@@ -89,21 +94,36 @@ namespace andromeda_poisson_disk_sampling.Demo2
 
             Gizmos.color = SearchRangeColor;
             
-            int searchSize = Mathf.RoundToInt((_point.Radius + _point.Margin) / _grid.GridProperties.CellSize);
-            int startX = Mathf.Max(0, _point.CellMin.x - searchSize);
-            int endX = Mathf.Min(_point.CellMax.x + searchSize, _grid.GridProperties.CellLenghtX - 1);
-            int startY = Mathf.Max(0, _point.CellMin.y - searchSize);
-            int endY = Mathf.Min(_point.CellMax.y + searchSize, _grid.GridProperties.CellLenghtY - 1);
+            int searchSize = Mathf.RoundToInt((_point.Size.Radius + _point.Size.Margin + _grid.GridProperties.PointMargin) / _grid.GridProperties.CellSize);
+            SearchBoundaries searchBoundaries = Helper.GetSearchBoundaries(_grid, _point.CellMin, _point.CellMax, searchSize);
             
-            for (int y = startY; y <= endY; y++)
+            float fullRadius = _point.Size.Radius + _point.Size.Margin + _grid.GridProperties.PointMargin;
+            float sqrtRad = fullRadius * fullRadius;
+            for (int y = searchBoundaries.StartY; y <= searchBoundaries.EndY; y++)
             {
-                for (int x = startX; x <= endX; x++)
+                for (int x = searchBoundaries.StartX; x <= searchBoundaries.EndX; x++)
                 {
                     var pos = new Vector3(
                         x: _grid.GridProperties.CellSize * x + _grid.GridProperties.PositionOffset.x,
                         y: _grid.GridProperties.CellSize * y + _grid.GridProperties.PositionOffset.y);
-                    Gizmos.DrawWireSphere(pos, SearchRangeRadius);
+                    
+                    if(IsInsideCircle(_point, sqrtRad, pos.x, pos.y))
+                        Gizmos.DrawWireSphere(pos, SearchRangeRadius);
+                    else
+                    {
+                        Gizmos.color = Color.black;
+                        Gizmos.DrawWireSphere(pos, SearchRangeRadius);
+                        Gizmos.color = SearchRangeColor;
+                    }
                 }
+            }
+            
+            bool IsInsideCircle(DPSPoint point, float sqrtRad, float x, float y)
+            {
+                double dx = x - point.WorldPosition.x;
+                double dy = y - point.WorldPosition.y;
+                double distanceSquared = dx * dx + dy * dy;
+                return distanceSquared < sqrtRad;
             }
         }
         
@@ -113,7 +133,7 @@ namespace andromeda_poisson_disk_sampling.Demo2
 
             Gizmos.color = GridCellsColor;
 
-            for (var y = 0; y < _grid.GridProperties.CellLenghtX; y++)
+            for (var y = 0; y < _grid.GridProperties.CellLenghtY; y++)
             {
                 for (var x = 0; x < _grid.GridProperties.CellLenghtX; x++)
                 {
@@ -135,8 +155,8 @@ namespace andromeda_poisson_disk_sampling.Demo2
 
             Gizmos.color = SpawnNewPointColor;
             
-            Gizmos.DrawWireSphere(transform.position, _point.Radius * 2);
-            Gizmos.DrawWireSphere(transform.position, _point.Radius * 3);
+            Gizmos.DrawWireSphere(transform.position, _point.Size.Radius * 2);
+            Gizmos.DrawWireSphere(transform.position, _point.Size.Radius * 3);
         }
     }
 }
