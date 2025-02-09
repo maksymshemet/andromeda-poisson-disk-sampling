@@ -156,7 +156,7 @@ namespace andromeda_poisson_disk_sampling.Demo2
                 throw new Exception("Couldn't spawn the point");
             }
 
-            var spawnPoints = new List<int> { 1 };
+            var spawnPoints = new List<int> { 0 };
             
             do
             {
@@ -167,7 +167,7 @@ namespace andromeda_poisson_disk_sampling.Demo2
                 point = _grid.TrySpawnPointFrom(spawnPoint);
                 if (point != null)
                 {
-                    spawnPoints.Add(point.Index + 1);
+                    spawnPoints.Add(point.Index);
                 }
                 else
                 {

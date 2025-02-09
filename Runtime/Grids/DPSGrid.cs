@@ -37,20 +37,19 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
         
         public TPoint GetPoint(int x, int y)
         {
-            int index = Cells.GetCellValue(x, y) - 1;
-            return index > -1 ? _points[index] : default;
+            int cellValue = Cells.GetCellValue(x, y);
+            return cellValue > 0 ? _points[cellValue - 1] : null;
         }
         
-        public TPoint GetPointByIndex(int pointIndex) => _points[pointIndex - 1];
+        public TPoint GetPointByIndex(int pointIndex) => _points[pointIndex];
 
         public void RemovePoint(TPoint point)
         {
-            int pointIndex = _points.IndexOf(point);
-            if(pointIndex < 0) return;
+            int pointIndex = point.Index;
             
             _points[pointIndex] = null;
             
-            int pointCellIndex = pointIndex + 1;
+            int pointCellValue = pointIndex + 1;
 
             if (GridProperties.FillCellsInsidePoint)
             {
@@ -63,7 +62,7 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
                     for (int x = searchBoundaries.StartX; x <= searchBoundaries.EndX; x++)
                     {
                         int cellValue = Cells.GetCellValue(x, y);
-                        if (cellValue == pointCellIndex)
+                        if (cellValue == pointCellValue)
                         {
                             Cells.ClearCellValue(x, y);
                         }
@@ -185,16 +184,16 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
 
         public bool IsPositionFree(Candidate candidate, int x, int y)
         {
-            int pointIndex = Cells.GetCellValue(x, y);
-            if (pointIndex == 0) return false;
+            int cellValue = Cells.GetCellValue(x, y);
+            if (cellValue == 0) return true;
             
-            TPoint existingPoint = GetPointByIndex(pointIndex);
+            TPoint existingPoint = GetPointByIndex(cellValue - 1);
             
             float sqrDst = (existingPoint.WorldPosition - candidate.WorldPosition).sqrMagnitude;
-            float radius = existingPoint.Size.Radius + existingPoint.Size.Margin 
-                                                + candidate.Size.Margin + candidate.Size.Radius 
-                                                + GridProperties.PointMargin + GridProperties.PointMargin;
-            return sqrDst < (radius * radius);
+            
+            float radius = existingPoint.Size.Radius + existingPoint.Size.Margin + GridProperties.PointMargin
+                           + candidate.Size.Margin + candidate.Size.Radius  + GridProperties.PointMargin;
+            return sqrDst > (radius * radius);
         }
 
         protected virtual bool IsCandidateInAABB(in Candidate candidate)
@@ -245,7 +244,7 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
             OnPointCreated?.Invoke(point);
         }
         
-        private void FillGridValues(in TPoint point, int pointCellIndex)
+        private void FillGridValues(in TPoint point, int pointCellValue)
         {
             if (GridProperties.FillCellsInsidePoint)
             {
@@ -264,7 +263,7 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
                             float cellX = GridProperties.CellSize * x + GridProperties.PositionOffset.x;
                             if (IsInsideCircle(point, sqrtRad, cellX, cellY))
                             {
-                                Cells.SetCellValue(x, y, pointCellIndex);
+                                Cells.SetCellValue(x, y, pointCellValue);
                             } 
                         }
                     }
@@ -272,10 +271,10 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids
             }
             else
             {
-                Cells.SetCellValue(point.CellMin.x, point.CellMin.y, pointCellIndex);
-                Cells.SetCellValue(point.CellMax.x, point.CellMax.y, pointCellIndex);
-                Cells.SetCellValue(point.CellMin.x, point.CellMax.y, pointCellIndex);
-                Cells.SetCellValue(point.CellMax.x, point.CellMin.y, pointCellIndex);
+                Cells.SetCellValue(point.CellMin.x, point.CellMin.y, pointCellValue);
+                Cells.SetCellValue(point.CellMax.x, point.CellMax.y, pointCellValue);
+                Cells.SetCellValue(point.CellMin.x, point.CellMax.y, pointCellValue);
+                Cells.SetCellValue(point.CellMax.x, point.CellMin.y, pointCellValue);
             }
         }
         

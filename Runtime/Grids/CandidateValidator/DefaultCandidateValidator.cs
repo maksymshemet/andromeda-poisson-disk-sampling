@@ -26,10 +26,10 @@ namespace DarkDynamics.Andromeda.PoissonDiskSampling.Runtime.Grids.CandidateVali
                 while (startX <= endX && endX >= startX)
                 {
                     if (
-                        gridConfig.IsPositionFree(candidate, startX, startY)
-                        || gridConfig.IsPositionFree(candidate,startX, endY)
-                        || gridConfig.IsPositionFree(candidate,endX, startY)
-                        || gridConfig.IsPositionFree(candidate,endX, endY)
+                        !gridConfig.IsPositionFree(candidate, startX, startY)
+                        || !gridConfig.IsPositionFree(candidate, startX, endY)
+                        || !gridConfig.IsPositionFree(candidate, endX, startY)
+                        || !gridConfig.IsPositionFree(candidate, endX, endY)
                         )
                     {
                         return false;
